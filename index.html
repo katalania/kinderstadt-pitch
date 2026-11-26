@@ -33,10 +33,16 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .house.sofort .grow,.house.sofort .shadow,.house.sofort .slot{transition:none}
 .stage{position:relative;overflow:hidden;background:var(--petrol)}
 .stage>svg{position:absolute;inset:0;width:100%;height:100%}
-#city{transition:transform 1.6s cubic-bezier(.6,0,.2,1);transform-origin:50% 58%}
-#leinwand.finale #city{transform:scale(.42);transition-delay:1s}
-#zukunft .dorf{opacity:0;transition:opacity .8s}
-#leinwand.finale #zukunft .dorf{opacity:1;transition-delay:calc(2.2s + var(--n) * .3s)}
+#city{transition:transform 1.8s cubic-bezier(.6,0,.2,1);transform-origin:0 0}
+#leinwand.finale #city{transition-delay:1s}
+#map{opacity:0;transition:opacity 1s;pointer-events:none}
+#leinwand.finale #map{opacity:1;transition-delay:1.9s}
+#map .ort{opacity:0;transition:opacity .6s}
+#leinwand.finale #map .ort{opacity:1;transition-delay:calc(3.2s + var(--n) * .35s)}
+#map .hier text{fill:#fff;font:700 42px var(--font)}
+#map .hier .ring{fill:none;stroke:var(--sand);stroke-width:3}
+#leinwand.finale #map .hier .ring{animation:puls 2s 3s infinite}
+@keyframes puls{0%{r:16;opacity:1}100%{r:44;opacity:0}}
 #leinwand.finale #ticker,#leinwand:not(.start) #ticker{opacity:0}
 #ticker{transition:opacity .4s}
 .house .grow{transform:scale(1,0);transform-origin:50% 100%;transform-box:fill-box;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
@@ -125,7 +131,10 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 
 <div id="leinwand" class="view">
   <div class="stage">
-    <svg id="zukunft" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <svg id="map" viewBox="0 0 1000 645" preserveAspectRatio="xMidYMid meet" aria-label="Karte der Schweiz">
+      <polygon id="ch" fill="#24505B" stroke="#A6B9BF" stroke-width="3" stroke-linejoin="round"/>
+      <g id="orte"></g>
+    </svg>
     <svg id="city" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMid meet" aria-label="Die Kinderstadt">
       <g id="houses"></g>
       <g id="people"></g>
@@ -311,12 +320,28 @@ function neuerBuerger(name) {
   return { name, job: D.jobs[Math.floor(Math.random() * D.jobs.length)], nr: String(1000 + Math.floor(Math.random() * 9000)) + Date.now().toString(36).slice(-3) };
 }
 
-/* ---------- Schluss: Zoom-out, rundherum entstehen weitere Kinderstädte ---------- */
-const ZUKUNFT = [[95,300],[305,280],[48,560],[352,600],[95,850],[305,840]];
-function drawZukunft() {
-  const haus = (x, y, dach) => `<rect x="${x - 11}" y="${y - 18}" width="22" height="18" fill="#24505B" stroke="#A6B9BF" stroke-width="2"/>`
-    + (dach ? `<polygon points="${x - 14},${y - 18} ${x},${y - 32} ${x + 14},${y - 18}" fill="#24505B" stroke="#A6B9BF" stroke-width="2" stroke-linejoin="round"/>` : `<rect x="${x - 13}" y="${y - 23}" width="26" height="5" fill="#A6B9BF"/>`);
-  $('#zukunft').innerHTML = ZUKUNFT.map(([x, y], n) => `<g class="dorf" style="--n:${n}">${haus(x - 26, y, true)}${haus(x, y - 12, false)}${haus(x + 26, y + 2, true)}</g>`).join('');
+/* ---------- Schluss: Zoom-out auf die Schweizer Karte ---------- */
+/* Die Kinderstadt schrumpft auf Steinhausen. 4 graue Punkte ohne Namen stehen für künftige Kinderstädte. */
+const proj = (lon, lat) => [(lon - 5.85) / 4.75 * 1000, (47.9 - lat) / 2.15 * 645];
+const CH = [[7.59,47.58],[8.2,47.62],[8.42,47.58],[8.57,47.8],[8.85,47.7],[9.0,47.68],[9.55,47.54],[9.67,47.38],[9.53,47.27],[9.48,47.06],[9.88,46.93],[10.47,46.87],[10.4,46.62],[10.13,46.6],[10.05,46.23],[9.68,46.3],[9.3,46.5],[9.04,45.83],[8.85,45.98],[8.6,46.12],[8.45,46.45],[8.12,46.25],[7.85,45.92],[7.55,45.98],[7.0,45.9],[6.8,46.13],[6.85,46.43],[6.5,46.45],[6.22,46.31],[5.96,46.13],[6.1,46.6],[6.45,46.95],[6.95,47.25],[6.97,47.45],[7.2,47.48],[7.5,47.45]];
+const STANDORT = {name: 'Steinhausen', lon: 8.486, lat: 47.195};
+const WEITERE = [[7.35,46.88],[7.75,47.42],[9.25,47.33],[6.75,46.62]];
+function drawMap() {
+  const st = D.standort || STANDORT, [x, y] = proj(+st.lon, +st.lat);
+  $('#ch').setAttribute('points', CH.map(c => proj(...c).map(v => v.toFixed(1)).join(',')).join(' '));
+  $('#orte').innerHTML = (D.weitere_orte || WEITERE).map(([lo, la], n) => { const [px, py] = proj(lo, la); return `<circle class="ort" style="--n:${n}" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="16" fill="#768A91"/>`; }).join('')
+    + `<g class="hier" id="hier"><circle class="ring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="16"/><text x="${(x + 40).toFixed(1)}" y="${(y + 14).toFixed(1)}">${esc(st.name)}</text></g>`;
+  $('#hier').dataset.x = x; $('#hier').dataset.y = y;
+}
+function zoomCity(on) {
+  const city = $('#city');
+  if (!on) { city.style.transform = ''; return; }
+  const S = $('.stage').getBoundingClientRect(), sw = S.width, sh = S.height;
+  const m = Math.min(sw / 1000, sh / 645), mx = (sw - 1000 * m) / 2, my = (sh - 645 * m) / 2;
+  const dx = mx + +$('#hier').dataset.x * m, dy = my + +$('#hier').dataset.y * m;
+  const c = Math.min(sw / 400, sh / 1000), cx = (sw - 400 * c) / 2, cy = (sh - 1000 * c) / 2;
+  const s = 46 / (760 * c);
+  city.style.transform = `translate(${(dx - s * (cx + 200 * c)).toFixed(1)}px,${(dy - s * (cy + 600 * c)).toFixed(1)}px) scale(${s.toFixed(4)})`;
 }
 
 /* ---------- Folien-Panel ---------- */
@@ -397,7 +422,7 @@ function go(s) {
   flights.forEach(a => { a.cancel(); a.effect?.target?.remove(); }); flights = []; inFlight.clear();
   if (prev === N + 1 && step !== N + 1) {
     /* Zoom sofort zurücksetzen, damit die Flugbahn zurück aus der Stadt stimmt */
-    const c = $('#city'); c.style.transition = 'none'; $('#leinwand').classList.remove('finale');
+    const c = $('#city'); c.style.transition = 'none'; $('#leinwand').classList.remove('finale'); c.style.transform = '';
     c.getBoundingClientRect(); requestAnimationFrame(() => { c.style.transition = ''; });
   }
   const F = featRect();
@@ -420,6 +445,7 @@ function go(s) {
   if (step === 0 && prev !== 0) zeigeFiguren();
   $('#leinwand').classList.toggle('finale', step === N + 1);
   $('#leinwand').classList.toggle('start', step === 0);
+  zoomCity(step === N + 1);
   $('#dots').innerHTML = Array.from({length: N + 2}, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
   renderPanel();
   sync.step(step);
@@ -554,7 +580,7 @@ function shrink(file) {
     c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     res(c.toDataURL('image/jpeg', .8)); }; img.onerror = () => res(''); img.src = URL.createObjectURL(file); });
 }
-function applyData() { drawHouses(); drawZukunft(); go(step); $('#h-titel').textContent = D.stadtname; }
+function applyData() { drawHouses(); drawMap(); go(step); $('#h-titel').textContent = D.stadtname; }
 
 /* ---------- Start ---------- */
 let view = 'leinwand';
@@ -606,6 +632,7 @@ document.addEventListener('keydown', e => {
 });
 const ro = new ResizeObserver(() => {
   if (!D) return;
+  if (step === D.kapitel.length + 1) zoomCity(true);
   if (featIdx >= 0 && !flights.length) showFeature(featIdx, false);
   syncBuilt();
 });
@@ -616,7 +643,7 @@ fetch('inhalt.json', {cache: 'no-store'}).then(r => r.json()).then(j => {
   FILE = j; D = LS.get('ks-inhalt') || structuredClone(j);
   ['jobs', 'kapitel'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
   D.intro = D.intro || {}; D.finale = D.finale || {};
-  drawHouses(); drawZukunft(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
+  drawHouses(); drawMap(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
 }).catch(() => { $('#panel').innerHTML = '<h1>Inhalte konnten nicht geladen werden</h1><p>Die Datei inhalt.json fehlt oder ist fehlerhaft.</p>'; $('#leinwand').classList.add('on'); });
 }
 </script>
