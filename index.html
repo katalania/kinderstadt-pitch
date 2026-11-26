@@ -26,7 +26,11 @@ button{cursor:pointer;border:0;border-radius:999px;min-height:44px;padding:0 20p
 h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 
 /* ---------- Leinwand ---------- */
-#leinwand.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);height:100vh;min-height:520px}
+#leinwand.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);height:100vh;min-height:520px;position:relative}
+#feature,.flyer{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;z-index:3}
+#feature svg,.flyer svg{width:100%;height:100%;overflow:visible;display:block}
+.panel.mit-haus{padding-right:calc(var(--feat-w,0px) + 72px)}
+.house.sofort .grow,.house.sofort .shadow,.house.sofort .slot{transition:none}
 .stage{position:relative;overflow:hidden;background:var(--petrol)}
 .stage>svg{position:absolute;inset:0;width:100%;height:100%}
 #city{transition:transform 1.8s cubic-bezier(.6,0,.2,1),opacity .8s 1.4s;transform-origin:0 0}
@@ -38,7 +42,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .house .grow{transform:scale(1,0);transform-origin:50% 100%;transform-box:fill-box;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
 .house.built .grow{transform:none}
 .house .shadow{opacity:0;transition:opacity .6s}.house.built .shadow{opacity:1}
-.house .slot{opacity:.35;transition:opacity .4s}.house.built .slot{opacity:0}
+.house .slot{opacity:0;transition:opacity .4s}.house.built .slot{opacity:0}
 .fig .pop{animation:drop .7s cubic-bezier(.3,1.6,.5,1) both}
 .fig .bob{animation:bob 2.4s ease-in-out infinite;animation-delay:var(--d)}
 .fig text{opacity:0;font:700 15px var(--font);fill:#fff}
@@ -140,6 +144,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
     <div class="hud"><div class="count"><b id="cnt">0</b>Bürger*innen</div><ul id="ticker"></ul></div>
   </div>
   <aside class="panel" id="panel" aria-live="polite"></aside>
+  <div id="feature" hidden aria-hidden="true"></div>
   <nav class="ctrl" id="ctrl" aria-label="Steuerung">
     <button id="zur" title="Zurück (Pfeil links)">‹</button>
     <span class="dots" id="dots"></span>
@@ -324,10 +329,75 @@ function renderPanel() {
       <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div><div class="zahl"><b>${D.staedte.length}</b>Städte als Ziel</div></div>${foot}`;
   }
 }
+/* ---------- Grosses Haus des laufenden Kapitels ---------- */
+const FEAT_VB = '-90 -215 190 235', FEAT_AR = 190 / 235;
+const ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let featIdx = -1, flights = [];
+const inFlight = new Set();
+const bigSVG = k => `<svg viewBox="${FEAT_VB}"><g class="house built">${houseSVG(k)}</g></svg>`;
+function featRect() {
+  const L = $('#leinwand').getBoundingClientRect(), P = $('#panel').getBoundingClientRect();
+  if (view !== 'leinwand' || P.top - L.top > 10 || P.width < 500) return null;
+  const w = Math.min(P.width * 0.3, P.height * 0.55 * FEAT_AR), h = w / FEAT_AR;
+  return {x: P.right - L.left - w - Math.max(32, P.width * 0.04), y: P.top - L.top + (P.height - h) / 2, w, h};
+}
+function slotRect(i) {
+  const svg = $('#city'), m = svg.getScreenCTM(), p = slotPos(i), L = $('#leinwand').getBoundingClientRect();
+  const pt = (x, y) => { const q = svg.createSVGPoint(); q.x = x; q.y = y; return q.matrixTransform(m); };
+  const A = pt(p[0] - 90 * HAUS_SC, p[1] - 215 * HAUS_SC), B = pt(p[0] + 100 * HAUS_SC, p[1] + 20 * HAUS_SC);
+  return {x: A.x - L.left, y: A.y - L.top, w: B.x - A.x, h: B.y - A.y};
+}
+function syncBuilt(sofort = []) {
+  const lim = featRect() ? step - 1 : step;
+  const els = [...document.querySelectorAll('#houses .house, #labels .house')];
+  els.forEach(h => { const i = +h.dataset.i; if (sofort.includes(i)) h.classList.add('sofort'); h.classList.toggle('built', i < lim && !inFlight.has(i)); });
+  if (sofort.length) requestAnimationFrame(() => requestAnimationFrame(() => els.forEach(h => h.classList.remove('sofort'))));
+}
+function showFeature(i, erscheinen) {
+  const el = $('#feature'), F = featRect();
+  el.getAnimations().forEach(a => a.cancel());
+  if (i < 0 || !F || !D.kapitel[i]) { el.hidden = true; featIdx = -1; $('#panel').classList.remove('mit-haus'); return; }
+  featIdx = i; el.innerHTML = bigSVG(D.kapitel[i]); el.hidden = false;
+  el.style.width = F.w + 'px'; el.style.height = F.h + 'px'; el.style.transform = `translate(${F.x}px,${F.y}px)`;
+  $('#leinwand').style.setProperty('--feat-w', F.w + 'px'); $('#panel').classList.add('mit-haus');
+  if (erscheinen && !ruhig) el.animate([
+    {opacity: 0, transform: `translate(${F.x + F.w * .075}px,${F.y + F.h * .15}px) scale(.85)`},
+    {opacity: 1, transform: `translate(${F.x}px,${F.y}px)`}
+  ], {duration: 650, delay: erscheinen === 'spaet' ? 550 : 0, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'backwards'});
+}
+function fly(i, from, to, fertig) {
+  const F = featRect();
+  if (!F || ruhig) { fertig(); return; }
+  const el = document.createElement('div');
+  el.className = 'flyer'; el.innerHTML = bigSVG(D.kapitel[i]);
+  el.style.width = F.w + 'px'; el.style.height = F.h + 'px';
+  $('#leinwand').appendChild(el);
+  const t = r => `translate(${r.x}px,${r.y}px) scale(${r.w / F.w})`;
+  const a = el.animate([{transform: t(from)}, {transform: t(to)}], {duration: 1000, easing: 'cubic-bezier(.6,0,.2,1)', fill: 'forwards'});
+  a.onfinish = () => { el.remove(); flights = flights.filter(f => f !== a); fertig(); };
+  flights.push(a);
+}
+
 function go(s) {
-  const N = D.kapitel.length;
+  const N = D.kapitel.length, prev = step;
   step = Math.max(0, Math.min(N + 1, s));
-  document.querySelectorAll('#houses .house, #labels .house').forEach(h => h.classList.toggle('built', +h.dataset.i < step));
+  flights.forEach(a => { a.cancel(); a.effect?.target?.remove(); }); flights = []; inFlight.clear();
+  const F = featRect();
+  if (F && step === prev + 1 && prev >= 1 && step <= N) {
+    const i = prev - 1;
+    inFlight.add(i);
+    fly(i, F, slotRect(i), () => { inFlight.delete(i); syncBuilt([i]); });
+    showFeature(step - 1, 'spaet');
+    syncBuilt();
+  } else if (F && step === prev - 1 && step >= 1 && prev <= N) {
+    const i = step - 1;
+    showFeature(-1);
+    syncBuilt([i]);
+    fly(i, slotRect(i), F, () => showFeature(i, false));
+  } else {
+    showFeature(step >= 1 && step <= N ? step - 1 : -1, step !== prev);
+    syncBuilt();
+  }
   $('#leinwand').classList.toggle('finale', step === N + 1);
   $('#leinwand').classList.toggle('start', step === 0);
   zoomCity(step === N + 1);
@@ -497,7 +567,12 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'h') $('#ctrl').classList.toggle('weg');
   else if (e.key === 'f') { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (err) {} }
 });
-const ro = new ResizeObserver(() => { if (D && step === D.kapitel.length + 1) zoomCity(true); });
+const ro = new ResizeObserver(() => {
+  if (!D) return;
+  if (step === D.kapitel.length + 1) zoomCity(true);
+  if (featIdx >= 0 && !flights.length) showFeature(featIdx, false);
+  syncBuilt();
+});
 ro.observe(document.body);
 window.addEventListener('hashchange', route);
 
