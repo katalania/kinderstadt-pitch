@@ -45,8 +45,9 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .house .slot{opacity:0;transition:opacity .4s}.house.built .slot{opacity:0}
 .fig .pop{animation:drop .7s cubic-bezier(.3,1.6,.5,1) both}
 .fig .bob{animation:bob 2.4s ease-in-out infinite;animation-delay:var(--d)}
-.fig text{opacity:0;font:700 15px var(--font);fill:#fff}
-.fig.neu text{animation:name 5s both}
+.fig text{font:700 18px var(--font);fill:#fff}
+.walker{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;z-index:4}
+.walker svg{width:100%;height:100%;display:block;overflow:visible}
 @keyframes drop{from{transform:translateY(-60px);opacity:0}}
 @keyframes bob{50%{transform:translateY(-3px)}}
 @keyframes name{0%,80%{opacity:1}100%{opacity:0}}
@@ -245,36 +246,75 @@ function drawHouses() {
 }
 
 /* ---------- Figuren ---------- */
+/* Auf der Startfolie stehen die Figuren auf festen Plätzen (3 × 10), damit 30 Namen lesbar bleiben.
+   Ab Kapitel 1 sind sie im Leuchtturm: Wer dann noch dazukommt, zählt nur noch mit. */
+const FIG_SC = 0.8, FIG_ZELLEN = [];
+for (let r = 0; r < 10; r++) for (let c = 0; c < 3; c++) FIG_ZELLEN.push([72 + c * 128, 330 + r * 63]);
+const figPos = new Map();
+const kurz = n => n.length > 12 ? n.slice(0, 11) + '…' : n;
+function figurPlatz(key) {
+  if (figPos.has(key)) return figPos.get(key);
+  const belegt = new Set([...figPos.values()].map(v => v.z));
+  const frei = FIG_ZELLEN.map((_, z) => z).filter(z => !belegt.has(z));
+  const z = frei.length ? frei[Math.floor(Math.random() * frei.length)] : Math.floor(Math.random() * FIG_ZELLEN.length);
+  const [x, y] = FIG_ZELLEN[z], extra = frei.length ? 0 : 1;
+  const pos = {z, x: x + (Math.random() * 2 - 1) * (8 + extra * 30), y: y + (Math.random() * 2 - 1) * (6 + extra * 20), c: FIGFARBEN[figPos.size % FIGFARBEN.length], d: (Math.random() * 2).toFixed(2)};
+  figPos.set(key, pos); return pos;
+}
+function figurSVG(c) { return `<path d="M-9,0 Q-9,-24 0,-24 Q9,-24 9,0Z" fill="${c}"/><circle cx="0" cy="-32" r="7.5" fill="${c}"/>`; }
+function zeichneFigur(key, p) {
+  const pos = figurPlatz(key);
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'fig');
+  g.setAttribute('transform', `translate(${pos.x.toFixed(1)},${pos.y.toFixed(1)})`);
+  g.dataset.y = pos.y; g.dataset.c = pos.c;
+  g.innerHTML = `<g class="pop"><ellipse cx="0" cy="1" rx="11" ry="4" fill="#000" opacity=".25"/><g transform="scale(${FIG_SC})"><g class="bob" style="--d:${pos.d}s">${figurSVG(pos.c)}</g></g>
+    <text x="0" y="-38" text-anchor="middle"></text></g>`;
+  g.querySelector('text').textContent = kurz(p.name);
+  const list = $('#people'), after = [...list.children].find(n => +n.dataset.y > pos.y);
+  list.insertBefore(g, after || null);
+}
+function zeigeFiguren() { $('#people').innerHTML = ''; people.forEach((p, key) => zeichneFigur(key, p)); }
+function figurenInsHaus() {
+  const figs = [...document.querySelectorAll('#people .fig')], F = featRect(), L = $('#leinwand').getBoundingClientRect();
+  if (!figs.length) return;
+  if (!F || ruhig) { $('#people').innerHTML = ''; return; }
+  const tx = F.x + F.w * 0.474, ty = F.y + F.h * 0.84;
+  figs.forEach((g, n) => {
+    const r = g.querySelector('.bob').getBoundingClientRect(), el = document.createElement('div');
+    el.className = 'walker'; el.style.width = r.width + 'px'; el.style.height = r.height + 'px';
+    el.innerHTML = `<svg viewBox="-9 -39.5 18 39.5">${figurSVG(g.dataset.c)}</svg>`;
+    $('#leinwand').appendChild(el);
+    const x0 = r.left - L.left, y0 = r.top - L.top, x1 = tx - r.width / 2, y1 = ty - r.height;
+    const a = el.animate([
+      {transform: `translate(${x0}px,${y0}px)`, opacity: 1},
+      {transform: `translate(${(x0 + x1) / 2}px,${Math.min(y0, y1) - 80}px)`, opacity: 1, offset: .5},
+      {transform: `translate(${x1}px,${y1}px) scale(.9)`, opacity: 1, offset: .92},
+      {transform: `translate(${x1}px,${y1 + 6}px) scale(.4)`, opacity: 0}
+    ], {duration: 1300, delay: 300 + n * 45, easing: 'ease-in-out', fill: 'both'});
+    a.onfinish = () => { el.remove(); flights = flights.filter(f => f !== a); };
+    flights.push(a);
+  });
+  $('#people').innerHTML = '';
+}
 function addPerson(p, neu = true) {
   const key = String(p.nr || p.name);
   if (!p.name || people.has(key)) return;
   people.set(key, p);
-  let x, y, t = 0;
-  do { x = 200 + (Math.random()*2-1) * 150; y = 620 + (Math.random()*2-1) * 280; t++; }
-  while (((x-200)/150)**2 + ((y-620)/280)**2 > 1 && t < 50);
-  const c = FIGFARBEN[people.size % FIGFARBEN.length];
-  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  g.setAttribute('class', 'fig' + (neu ? ' neu' : ''));
-  g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
-  g.dataset.y = y;
-  g.innerHTML = `<g class="pop"><ellipse cx="0" cy="1" rx="11" ry="4" fill="#000" opacity=".25"/><g class="bob" style="--d:${(Math.random()*2).toFixed(2)}s">
-    <path d="M-9,0 Q-9,-24 0,-24 Q9,-24 9,0Z" fill="${c}"/><circle cx="0" cy="-32" r="7.5" fill="${c}"/></g>
-    <text x="0" y="-48" text-anchor="middle"></text></g>`;
-  g.querySelector('text').textContent = p.name;
-  const list = $('#people'), after = [...list.children].find(n => +n.dataset.y > y);
-  list.insertBefore(g, after || null);
   $('#cnt').textContent = people.size;
+  if (step !== 0) { if (step === D.kapitel.length + 1) renderPanel(); return; }
+  zeichneFigur(key, p);
   if (neu) {
     const li = document.createElement('li');
     li.innerHTML = '<b></b> ist jetzt <span></span>';
     li.querySelector('b').textContent = p.name; li.querySelector('span').textContent = p.job || 'Bürger*in';
-    const tk = $('#ticker'); tk.prepend(li); while (tk.children.length > 3) tk.lastChild.remove();
+    const tk = $('#ticker'); tk.prepend(li); while (tk.children.length > 2) tk.lastChild.remove();
   }
   if (step === 0 || step === D.kapitel.length + 1) renderPanel();
 }
 
 const NAMEN = ['Mia','Noah','Lea','Luca','Emma','Elias','Sofia','Leon','Lina','Ben','Alina','Matteo','Nina','Jonas','Elena','Samuel','Laura','David','Ayla','Tim','Sara','Nico','Hanna','Levin','Zoe','Malik','Lia','Jan','Mila','Arian'];
-function leeren() { sync.reset(); people.clear(); $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
+function leeren() { sync.reset(); people.clear(); figPos.clear(); $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
 function simulate(n = 6) {
   for (let i = 0; i < n; i++) setTimeout(() => addPerson(neuerBuerger(NAMEN[Math.floor(Math.random()*NAMEN.length)])), i * 350);
 }
@@ -398,6 +438,8 @@ function go(s) {
     showFeature(step >= 1 && step <= N ? step - 1 : -1, step !== prev);
     syncBuilt();
   }
+  if (prev === 0 && step > 0) figurenInsHaus();
+  if (step === 0 && prev !== 0) zeigeFiguren();
   $('#leinwand').classList.toggle('finale', step === N + 1);
   $('#leinwand').classList.toggle('start', step === 0);
   zoomCity(step === N + 1);
