@@ -137,6 +137,9 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .h-abst .wahl button{background:var(--tief);color:#fff;font-size:22px;min-height:58px;border-radius:14px}
 .h-abst .wahl button:active{background:var(--teal)}
 .h-abst .ergebnis{font-size:26px;font-weight:800;color:var(--petrol);margin-top:4px}
+.h-kasse .betrag{font-size:40px;font-weight:800;color:var(--petrol);line-height:1.1}
+.h-kasse .betrag.null{color:var(--bronze)}
+.h-kasse .aufruf{font-size:19px;font-weight:700;color:var(--petrol);margin-top:12px}
 .link{background:none;color:var(--teal);padding:0;min-height:40px;font-weight:600;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -183,6 +186,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
       <button class="link" id="h-neu" type="button">Neuen Ausweis machen</button>
     </div>
     <section class="h-abst" id="h-abst" hidden></section>
+    <section class="h-abst h-kasse" id="h-kasse" hidden></section>
     <section class="h-stadt"><h2>Deine Stadt</h2><p id="h-stand">Schau auf die Leinwand: hier wächst sie mit.</p><svg id="h-houses" viewBox="0 0 600 150"></svg></section>
     <p style="text-align:center"><a class="link" href="#leinwand">Zur Leinwand-Ansicht</a></p>
   </main>
@@ -402,6 +406,11 @@ function zurueck() {
   else if (step === 0 && abst > 0) setAbst(abst - 1);
   else go(step - 1);
 }
+/* Kartoni-Kasse: Jedes Haus kostet alle gleich viel. Das Startkapital wird so auf die Häuser verteilt,
+   dass nach dem letzten Haus genau 0 übrig bleibt (bei 25 Kartoni und 11 Häusern: mal 2, mal 3). */
+function rest(kap, k, N) { kap = +kap || 0; k = Math.max(0, Math.min(k, N)); return kap - Math.round(kap * k / N); }
+function kosten(kap, k, N) { return rest(kap, k - 1, N) - rest(kap, k, N); }
+const leinwandKapital = () => kapital || +D.startguthaben || 50;
 function zeichnePunkte() {
   const N = D.kapitel.length, aktiv = step === 0 ? (abst > 0 ? 1 : 0) : step + 1;
   $('#dots').innerHTML = Array.from({length: N + 3}, (_, i) => `<i class="${i === aktiv ? 'on' : ''}"></i>`).join('');
@@ -433,12 +442,13 @@ function renderPanel() {
     const k = D.kapitel[step - 1];
     const paras = String(k.text || '').split(/\n+/).filter(Boolean).map(t => `<p>${esc(t)}</p>`).join('');
     const pts = (k.punkte || []).filter(Boolean);
-    P.innerHTML = `${logo}<div class="kicker">Kapitel ${step} von ${N} · neu in der Stadt: ${esc(k.haus)}</div><h1>${esc(k.titel)}</h1>${paras}
+    const kap = leinwandKapital();
+    P.innerHTML = `${logo}<div class="kicker">Kapitel ${step} von ${N} · neu in der Stadt: ${esc(k.haus)} · kostet jede:n ${kosten(kap, step, N)} ${esc(D.waehrung)}, übrig ${rest(kap, step, N)}</div><h1>${esc(k.titel)}</h1>${paras}
       ${pts.length ? '<ul>' + pts.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>' : ''}
       ${okBild(k.bild) ? `<img class="bild" alt="" src="${esc(k.bild)}">` : ''}${foot}`;
   } else {
     P.innerHTML = `${logo}<h1>${esc(D.finale.titel)}</h1><p>${esc(D.finale.text)}</p>
-      <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div></div>${foot}`;
+      <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div><div class="zahl"><b>0</b>${esc(D.waehrung)} übrig</div></div>${foot}`;
   }
 }
 /* ---------- Grosses Haus des laufenden Kapitels ---------- */
@@ -538,6 +548,7 @@ async function ausweisBild(p) {
   const row = (l, v, y, big) => { x.fillStyle = '#A6B9BF'; x.font = F(400, 22); x.fillText(l, 64, y); x.fillStyle = '#fff'; x.font = F(700, big ? 52 : 36); x.fillText(v, 64, y + (big ? 56 : 44)); };
   const kap = LS.get('ks-kapital');
   row('Name', p.name, 250, true); row('Beruf', p.job, 390); row('Startkapital', kap ? `${kap} ${D.waehrung}` : 'wird abgestimmt', 500);
+  if (kap && hStep > 0) { const r = rest(kap, hStep, D.kapitel.length); x.fillStyle = '#A6B9BF'; x.font = F(400, 22); x.fillText('Guthaben jetzt', 420, 500); x.fillStyle = r === 0 ? '#C7AA81' : '#fff'; x.font = F(700, 36); x.fillText(`${r} ${D.waehrung}`, 420, 544); }
   x.fillStyle = '#A6B9BF'; x.font = F(400, 20);
   x.fillText(`Nr. ${p.nr.slice(0, 4)} · ausgestellt am ${new Date().toLocaleDateString('de-CH')}`, 64, 616);
   const cx = 830, cy = 270;
@@ -573,6 +584,21 @@ $('#h-abst').addEventListener('click', e => {
   const wahl = +b.dataset.wahl; LS.set('ks-stimme', {nr: me.nr, wahl, runde: hRunde}); sync.stimme(me.nr, wahl);
   handyAbst(hStep, hAbst, null);
 });
+/* Kasse auf dem Handy: Guthaben sinkt mit jedem Haus, am Schluss 0 und der Aufruf. */
+let hRest = null;
+function handyKasse(st) {
+  const box = $('#h-kasse'), kap = LS.get('ks-kapital'), me = LS.get('ks-ich'), N = D.kapitel.length;
+  if (!kap || st < 1) { box.hidden = true; if (hRest !== null && me) { hRest = null; zeigeAusweis(me); } return; }
+  const r = rest(kap, st, N);
+  box.hidden = false;
+  if (st > N) {
+    box.innerHTML = `<h2>Dein Guthaben</h2><div class="betrag null">0 ${esc(D.waehrung)}</div><p>Alle ${N} Häuser sind gebaut, dein Startkapital von ${esc(kap)} ${esc(D.waehrung)} steckt jetzt in der Kinderstadt.</p><p class="aufruf">Damit neue Kinderstädte gebaut werden können, brauchen wir eure Unterstützung.</p>`;
+  } else {
+    const k = D.kapitel[st - 1];
+    box.innerHTML = `<h2>Dein Guthaben</h2><div class="betrag${r === 0 ? ' null' : ''}">${r} ${esc(D.waehrung)}</div><p>${esc(k.haus)} wird gebaut und kostet dich ${kosten(kap, st, N)} ${esc(D.waehrung)}.</p>`;
+  }
+  if (r !== hRest) { hRest = r; if (me) zeigeAusweis(me); }
+}
 /* Das Handy zeigt dasselbe Dorf wie die Leinwand, mit allen Häusern bis zum aktuellen Kapitel. */
 let handyStand = -1;
 function handyStadt(s) {
@@ -609,7 +635,7 @@ const sync = (() => {
   const stepAmHandy = m => {
     const st = Math.max(0, Math.min(99, +m.step || 0)), a = Math.max(0, Math.min(2, +m.abst || 0)), kap = +m.kapital || null;
     hRunde = +m.runde || 0;
-    handyStadt(st); handyAbst(st, a, kap && optionen().includes(kap) ? kap : (st > 0 ? LS.get('ks-kapital') : null));
+    handyStadt(st); handyAbst(st, a, kap && optionen().includes(kap) ? kap : (st > 0 ? LS.get('ks-kapital') : null)); handyKasse(st);
   };
   const post = m => { if (kanal) fetch('https://ntfy.sh/' + encodeURIComponent(kanal), {method: 'POST', body: JSON.stringify(m)}).catch(() => {}); };
   const clean = p => p && ({name: String(p.name || '').slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)});
@@ -694,7 +720,7 @@ function route() {
   view = location.hash === '#handy' ? 'handy' : 'leinwand';
   $('#leinwand').classList.toggle('on', view === 'leinwand');
   $('#handy').classList.toggle('on', view === 'handy');
-  if (view === 'handy') { const me = LS.get('ks-ich'); if (me) { zeigeAusweis(me); sync.buerger(me); } handyStadt(hStep); handyAbst(hStep, hAbst, LS.get('ks-kapital')); sync.hallo(); }
+  if (view === 'handy') { const me = LS.get('ks-ich'); if (me) { zeigeAusweis(me); sync.buerger(me); } handyStadt(hStep); handyAbst(hStep, hAbst, LS.get('ks-kapital')); handyKasse(hStep); sync.hallo(); }
   else { go(step); }
 }
 
