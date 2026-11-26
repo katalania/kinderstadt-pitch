@@ -492,7 +492,7 @@ const ro = new ResizeObserver(() => { if (D && step === D.kapitel.length + 1) zo
 ro.observe(document.body);
 window.addEventListener('hashchange', route);
 
-fetch('inhalt.json').then(r => r.json()).then(j => {
+fetch('inhalt.json', {cache: 'no-store'}).then(r => r.json()).then(j => {
   FILE = j; D = LS.get('ks-inhalt') || structuredClone(j);
   ['jobs', 'kapitel', 'staedte'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
   D.intro = D.intro || {}; D.finale = D.finale || {};
