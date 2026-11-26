@@ -177,7 +177,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 
 <div class="sheet" id="sheet" hidden><div>
   <h2>Folieninhalte</h2>
-  <p class="hint">Hier kannst du Titel, Text, Bild und Haus pro Kapitel ändern. Gespeichert wird in diesem Browser. Mit «Als Text kopieren» bekommst du alles als inhalt.json, um es dauerhaft einzusetzen.</p>
+  <p class="hint">Hier kannst du Titel, Text, Bild und Haus pro Kapitel ändern. Gespeichert wird in diesem Browser. Mit «Als Text kopieren» bekommst du alles als inhalt.json, um es dauerhaft einzusetzen.<br><b>Wichtig:</b> Die Handys der Gäste laden die Datei inhalt.json. Neue Kapitel, Kapiteltitel und Hausnamen erscheinen dort erst, wenn sie in inhalt.json übernommen sind. Texte, Aufzählungen und Bilder sieht nur die Leinwand.</p>
   <div id="kaps"></div>
   <div class="bar">
     <button class="btn" id="e-save">Speichern</button>
@@ -617,7 +617,8 @@ $('#h-form').addEventListener('submit', e => {
 $('#h-neu').onclick = () => { LS.del('ks-ich'); $('#h-form').hidden = false; $('#ausweis').hidden = true; $('#h-name').focus(); };
 
 document.addEventListener('keydown', e => {
-  if (view !== 'leinwand' || !$('#sheet').hidden || e.target.matches('input,textarea,select')) return;
+  if (e.key === 'Escape' && !$('#sheet').hidden) { $('#sheet').hidden = true; return; }
+  if (view !== 'leinwand' || !$('#sheet').hidden || e.target.matches?.('input,textarea,select')) return;
   if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(step + 1); }
   else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(step - 1); }
   else if (e.key === 's') simulate();
