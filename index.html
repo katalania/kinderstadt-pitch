@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kinderstadt Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="qrcode.js"></script>
+<style>
+/* VOICE: warm, ruhig, wie die Folienvorlage: viel Weissraum, Petrol dominant, Sand und Bronze sparsam.
+   IDEA: eine Kartonstadt auf einem runden Platz, die mit jedem Kapitel ein Haus dazubekommt.
+   PICTURE: links die Stadt (Karton-Häuser, Figuren fürs Publikum), am Schluss Zoom auf die Schweizer Karte.
+   COLOUR and TYPE: Petrol 1A3C45, Teal 337080, Tiefblau 0D5969, Nebelblau A6B9BF, Sand C7AA81, Bronze AF864C; Aptos, sonst Figtree.
+   LAYOUT: Leinwand 16:9 mit Stadt links und Folie rechts; Handy eine ruhige Spalte. */
+:root{--petrol:#1A3C45;--teal:#337080;--tief:#0D5969;--nebel:#A6B9BF;--schiefer:#768A91;--sand:#C7AA81;--bronze:#AF864C;--hell:#F5F5F5;--text:#333;
+  --font:Aptos,"Figtree","Segoe UI",system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{font:16px/1.5 var(--font);color:var(--text);background:var(--petrol);overflow-x:clip}
+.view{display:none}.view.on{display:block}
+button,input,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:999px;min-height:44px;padding:0 20px;font-weight:700}
+:focus-visible{outline:3px solid var(--sand);outline-offset:2px}
+h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
+
+/* ---------- Leinwand ---------- */
+#leinwand.on{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);height:100vh;min-height:520px}
+.stage{position:relative;overflow:hidden;background:var(--petrol)}
+.stage>svg{position:absolute;inset:0;width:100%;height:100%}
+#city{transition:transform 1.8s cubic-bezier(.6,0,.2,1),opacity .8s 1.4s;transform-origin:0 0}
+#leinwand.finale #city{opacity:0}
+#map{opacity:0;transform:scale(1.25);transition:opacity 1.2s .6s,transform 2s .4s cubic-bezier(.3,0,.2,1);pointer-events:none}
+#leinwand.finale #map{opacity:1;transform:none}
+#leinwand.finale #ticker{opacity:0}
+.house .grow{transform:scale(1,0);transform-origin:50% 100%;transform-box:fill-box;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
+.house.built .grow{transform:none}
+.house .shadow{opacity:0;transition:opacity .6s}.house.built .shadow{opacity:1}
+.house .slot{opacity:.35;transition:opacity .4s}.house.built .slot{opacity:0}
+.fig .pop{animation:drop .7s cubic-bezier(.3,1.6,.5,1) both}
+.fig .bob{animation:bob 2.4s ease-in-out infinite;animation-delay:var(--d)}
+.fig text{opacity:0;font:700 15px var(--font);fill:#fff}
+.fig.neu text{animation:name 5s both}
+@keyframes drop{from{transform:translateY(-60px);opacity:0}}
+@keyframes bob{50%{transform:translateY(-3px)}}
+@keyframes name{0%,80%{opacity:1}100%{opacity:0}}
+.city-pt circle.dot{fill:var(--nebel);transition:fill .5s,r .5s;transition-delay:var(--t)}
+.city-pt circle.ring{fill:none;stroke:var(--sand);stroke-width:2;opacity:0;transition:opacity .5s;transition-delay:var(--t)}
+.city-pt text{fill:#fff;font:600 19px var(--font);opacity:0;transition:opacity .5s;transition-delay:var(--t)}
+#leinwand.finale .city-pt circle.dot{fill:var(--sand)}
+#leinwand.finale .city-pt circle.ring{opacity:1;animation:puls 2s infinite;animation-delay:var(--t)}
+#leinwand.finale .city-pt text{opacity:1}
+.city-pt.start text{font-size:23px;font-weight:800}
+@keyframes puls{0%{r:8}100%{r:30;opacity:0}}
+.hud{position:absolute;left:clamp(16px,3vw,40px);top:clamp(16px,3vw,36px);color:#fff;pointer-events:none}
+.hud .count{font-size:18px;color:var(--nebel)}.hud .count b{display:block;font-size:clamp(40px,5vw,64px);line-height:1;color:#fff}
+#ticker{list-style:none;margin:12px 0 0;padding:0;font-size:15px;color:var(--nebel)}
+#ticker li{animation:drop .5s both}
+#ticker b{color:#fff}
+
+.panel{background:#fff;color:var(--petrol);padding:clamp(28px,4vw,64px) clamp(24px,3.4vw,56px) 72px;position:relative;overflow:auto;display:flex;flex-direction:column;justify-content:center}
+.logo{position:absolute;top:22px;right:22px;width:64px;height:64px;border-radius:50%;background:var(--petrol);color:#fff;display:grid;place-items:center;
+  font:600 12px/1 var(--font);text-align:center;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--petrol)}
+.panel .kicker{color:var(--schiefer);font-size:15px;margin-bottom:12px}
+.panel h1{font-size:clamp(30px,3.2vw,46px);color:var(--petrol)}
+.panel p{font-size:clamp(16px,1.35vw,20px);max-width:36em;margin:18px 0 0;color:var(--text)}
+.panel ul{margin:16px 0 0;padding-left:1.2em;font-size:clamp(16px,1.3vw,19px)}
+.panel .bild{width:clamp(120px,13vw,200px);aspect-ratio:1;border-radius:50%;object-fit:cover;margin-top:24px;box-shadow:0 0 0 6px var(--hell)}
+.panel footer{position:absolute;left:clamp(24px,3.4vw,56px);bottom:22px;font-size:13px;color:var(--schiefer);display:flex;gap:28px}
+.qr{margin-top:24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.qr .code{width:clamp(150px,15vw,230px);aspect-ratio:1;background:#fff;border:2px solid var(--petrol);border-radius:18px;padding:10px;display:grid;place-items:center;font-size:13px;color:var(--schiefer);text-align:center}
+.qr .code svg{width:100%;height:100%}
+.qr small{font-size:14px;color:var(--schiefer);max-width:16em}
+.zahlen{display:flex;gap:clamp(10px,1.4vw,22px);margin-top:28px;flex-wrap:wrap}
+.zahl{text-align:center;font-size:14px;color:var(--petrol)}
+.zahl b{display:grid;place-items:center;width:clamp(84px,8vw,120px);aspect-ratio:1;border-radius:50%;background:var(--petrol);color:#fff;font-size:clamp(24px,2.4vw,36px);margin:0 auto 8px}
+.zahl:nth-child(2) b{background:var(--teal)}.zahl:nth-child(3) b{background:var(--nebel);color:var(--petrol)}
+
+.ctrl{position:fixed;left:14px;bottom:12px;display:flex;gap:6px;align-items:center;background:rgba(26,60,69,.92);padding:6px;border-radius:999px;z-index:5;transition:opacity .3s;flex-wrap:wrap}
+.ctrl button,.ctrl a{background:transparent;color:#fff;min-height:36px;padding:0 14px;font-size:14px;font-weight:600;text-decoration:none;display:grid;place-items:center;border-radius:999px}
+.ctrl button:hover,.ctrl a:hover{background:var(--tief)}
+.ctrl .dots{display:flex;gap:5px;padding:0 6px}.ctrl .dots i{width:8px;height:8px;border-radius:50%;background:var(--schiefer)}.ctrl .dots i.on{background:var(--sand)}
+.ctrl.weg{opacity:0}.ctrl.weg:hover{opacity:1}
+
+@media(max-width:900px){#leinwand.on{grid-template-columns:1fr;height:auto}.stage{height:62vw;min-height:300px}.panel{padding-bottom:110px}}
+
+/* ---------- Editor ---------- */
+.sheet{position:fixed;inset:0;background:rgba(13,30,36,.6);z-index:10;display:grid;place-items:center;padding:16px}
+.sheet[hidden]{display:none}
+.sheet>div{background:#fff;color:var(--petrol);border-radius:18px;width:min(860px,100%);max-height:92vh;overflow:auto;padding:28px}
+.sheet h2{font-size:28px}
+.sheet .hint{color:var(--schiefer);font-size:15px;margin:6px 0 18px}
+.kap{border-top:1px solid #dde3e5;padding:16px 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.kap h3{grid-column:1/-1;margin:0;font-size:17px}
+.kap label{font-size:13px;color:var(--schiefer);display:grid;gap:4px}
+.kap .wide{grid-column:1/-1}
+.kap input,.kap textarea,.kap select{font-size:16px;padding:10px;border:1px solid var(--nebel);border-radius:10px;color:var(--text);background:#fff;width:100%}
+.kap textarea{min-height:80px;resize:vertical}
+.sheet .bar{display:flex;gap:10px;flex-wrap:wrap;position:sticky;bottom:-28px;background:#fff;padding:14px 0 4px}
+.btn{background:var(--tief);color:#fff}.btn:hover{background:var(--teal)}
+.btn2{background:var(--hell);color:var(--petrol)}
+@media(max-width:600px){.kap{grid-template-columns:1fr}}
+
+/* ---------- Handy ---------- */
+#handy{background:var(--hell);min-height:100vh}
+.h-top{background:var(--petrol);color:#fff;padding:28px 22px 34px;display:flex;gap:16px;align-items:center}
+.h-top .logo{position:static;flex:none;width:56px;height:56px;box-shadow:0 0 0 2px var(--petrol),0 0 0 3px #fff;font-size:11px}
+.h-top h1{font-size:28px}
+.h-top p{margin:4px 0 0;color:var(--nebel);font-size:15px}
+.h-main{max-width:520px;margin:0 auto;padding:24px 20px 48px}
+.h-main form{display:grid;gap:12px;background:#fff;border-radius:18px;padding:22px}
+.h-main label{font-weight:700;color:var(--petrol);font-size:19px}
+.h-main input{font-size:18px;padding:12px 14px;border:2px solid var(--nebel);border-radius:12px;width:100%}
+.h-main input:focus{border-color:var(--teal);outline:0}
+#ausweis img{width:100%;border-radius:18px;display:block;box-shadow:0 10px 30px rgba(26,60,69,.25)}
+#ausweis .tipp{font-size:14px;color:var(--schiefer);margin:12px 4px}
+.h-stadt{background:#fff;border-radius:18px;padding:18px 20px;margin-top:18px;color:var(--petrol)}
+.h-stadt h2{font-size:19px}.h-stadt p{margin:4px 0 10px;font-size:15px;color:var(--schiefer)}
+.h-stadt svg{width:100%;height:auto;display:block}
+.link{background:none;color:var(--teal);padding:0;min-height:40px;font-weight:600;text-decoration:underline}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="leinwand" class="view">
+  <div class="stage">
+    <svg id="map" viewBox="0 0 1000 645" preserveAspectRatio="xMidYMid meet" aria-label="Karte der Schweiz">
+      <polygon id="ch" fill="#24505B" stroke="#A6B9BF" stroke-width="2.5" stroke-linejoin="round"/>
+      <g id="cities"></g>
+    </svg>
+    <svg id="city" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-label="Die Kinderstadt">
+      <circle cx="500" cy="420" r="330" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2"/>
+      <circle cx="500" cy="420" r="400" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="2"/>
+      <ellipse cx="500" cy="500" rx="440" ry="190" fill="#24505B"/>
+      <ellipse cx="500" cy="500" rx="440" ry="190" fill="none" stroke="#A6B9BF" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round"/>
+      <g id="houses"></g>
+      <g id="people"></g>
+    </svg>
+    <div class="hud"><div class="count"><b id="cnt">0</b>Bürger*innen</div><ul id="ticker"></ul></div>
+  </div>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+  <nav class="ctrl" id="ctrl" aria-label="Steuerung">
+    <button id="zur" title="Zurück (Pfeil links)">‹</button>
+    <span class="dots" id="dots"></span>
+    <button id="vor" title="Weiter (Pfeil rechts, Leertaste)">›</button>
+    <button id="sim" title="Taste S">Gäste simulieren</button>
+    <button id="edit" title="Taste I">Inhalte</button>
+    <button id="leer" title="Taste R: alle Figuren entfernen, zurück zum Anfang">Neu starten</button>
+    <a href="#handy">Handy-Ansicht</a>
+  </nav>
+</div>
+
+<div id="handy" class="view">
+  <header class="h-top"><div class="logo">Kinder<br>stadt</div><div><h1 id="h-titel">Kinderstadt</h1><p>Dein Bürgerausweis</p></div></header>
+  <main class="h-main">
+    <form id="h-form">
+      <label for="h-name">Wie heisst du?</label>
+      <input id="h-name" maxlength="24" autocomplete="given-name" placeholder="Vorname" required>
+      <button class="btn" type="submit">Bürgerausweis holen</button>
+    </form>
+    <div id="ausweis" hidden>
+      <img id="h-img" alt="Dein Bürgerausweis">
+      <p class="tipp">Bild lange drücken und sichern, dann bleibt dein Ausweis als Erinnerung.</p>
+      <button class="link" id="h-neu" type="button">Neuen Ausweis machen</button>
+    </div>
+    <section class="h-stadt"><h2>Deine Stadt</h2><p id="h-stand">Schau auf die Leinwand: hier wächst sie mit.</p><svg id="h-houses" viewBox="0 0 600 150"></svg></section>
+    <p style="text-align:center"><a class="link" href="#leinwand">Zur Leinwand-Ansicht</a></p>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden><div>
+  <h2>Folieninhalte</h2>
+  <p class="hint">Hier kannst du Titel, Text, Bild und Haus pro Kapitel ändern. Gespeichert wird in diesem Browser. Mit «Als Text kopieren» bekommst du alles als inhalt.json, um es dauerhaft einzusetzen.</p>
+  <div id="kaps"></div>
+  <div class="bar">
+    <button class="btn" id="e-save">Speichern</button>
+    <button class="btn2" id="e-add">Kapitel hinzufügen</button>
+    <button class="btn2" id="e-copy">Als Text kopieren</button>
+    <button class="btn2" id="e-reset">Zurück zur Datei</button>
+    <button class="btn2" id="e-close">Schliessen</button>
+  </div>
+  <textarea id="e-out" hidden style="width:100%;min-height:160px;margin-top:10px;font:13px/1.4 monospace"></textarea>
+</div></div>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const okBild = b => typeof b === 'string' && (/^data:image\//.test(b) || /^[\w\-./]+\.(png|jpe?g|webp|gif|svg)$/i.test(b));
+const LS = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}, del(k){try{localStorage.removeItem(k)}catch(e){}}};
+
+let FILE = null, D = null, step = 0;
+const people = new Map();
+const FORMS = ['giebel','flach','turm','kuppel','saege'];
+const FIGFARBEN = ['#C7AA81','#FFFFFF','#A6B9BF','#E3D2B8','#8FC1CC','#AF864C'];
+
+/* ---------- Häuser ---------- */
+function houseSVG(k, w = 112, h = 84) {
+  const f = k.form || 'giebel', W = w/2, S = 22;
+  let roof = '';
+  if (f === 'giebel') roof = `<polygon points="${-W-8},${-h} 0,${-h-54} ${W+8},${-h}" fill="#AF864C"/><polygon points="${W+8},${-h} 0,${-h-54} ${S},${-h-68} ${W+S+6},${-h-14}" fill="#957039"/>`;
+  if (f === 'flach') roof = `<polygon points="${-W-4},${-h} ${W+4},${-h} ${W+S+4},${-h-14} ${-W+S-4},${-h-14}" fill="#AF864C"/><rect x="${-W-4}" y="${-h-6}" width="${w+8}" height="8" fill="#957039"/>`;
+  if (f === 'turm') roof = `<rect x="-16" y="${-h-60}" width="32" height="60" fill="#C7AA81"/><rect x="16" y="${-h-60}" width="10" height="60" fill="#A88A60"/><polygon points="-22,${-h-60} 4,${-h-98} 30,${-h-60}" fill="#AF864C"/><circle cx="0" cy="${-h-36}" r="9" fill="#F5F5F5" stroke="#1A3C45" stroke-width="2"/><line x1="4" y1="${-h-98}" x2="4" y2="${-h-124}" stroke="#F5F5F5" stroke-width="2"/><polygon points="4,${-h-124} 26,${-h-117} 4,${-h-110}" fill="#337080"/>`;
+  if (f === 'kuppel') roof = `<path d="M${-W+6},${-h} A${W-6},${W-14} 0 0 1 ${W-6},${-h}Z" fill="#AF864C"/><rect x="-3" y="${-h-W-4}" width="6" height="14" fill="#957039"/>`;
+  if (f === 'saege') roof = [0,1,2].map(i => { const x = -W + i*w/3; return `<polygon points="${x},${-h} ${x},${-h-34} ${x+w/3},${-h}" fill="${i%2?'#957039':'#AF864C'}"/>`; }).join('');
+  const win = [-W+16, W-36].map(x => `<rect x="${x}" y="${-h+16}" width="20" height="18" rx="3" fill="#1A3C45"/>`).join('');
+  return `<ellipse class="shadow" cx="${S/2}" cy="4" rx="${W+26}" ry="12" fill="rgba(0,0,0,.25)"/>
+  <g class="grow">${roof}
+    <polygon points="${W},0 ${W+S},-14 ${W+S},${-h-14} ${W},${-h}" fill="#A88A60"/>
+    <rect x="${-W}" y="${-h}" width="${w}" height="${h}" fill="#C7AA81"/>
+    <line x1="${-W}" y1="${-h/2}" x2="${W}" y2="${-h/2}" stroke="#AF864C" stroke-opacity=".5" stroke-dasharray="6 5"/>
+    ${win}<rect x="-12" y="-34" width="24" height="34" rx="12" fill="#1A3C45"/>
+  </g>`;
+}
+function houseLabel(k, h = 84) { return `<g class="grow"><rect x="-56" y="12" width="112" height="24" rx="12" fill="#fff"/><text x="0" y="29" text-anchor="middle" font-size="14" font-weight="700" fill="#1A3C45" font-family="Figtree,sans-serif">${esc(k.haus)}</text></g>`; }
+
+function slotPos(i, n) {
+  const t = n === 1 ? .5 : i / (n - 1);
+  return [130 + 740 * t, 400 - 70 * Math.sin(Math.PI * t)];
+}
+function drawHouses() {
+  const K = D.kapitel, sc = Math.min(.9, 5.6 / Math.max(K.length, 1));
+  const items = K.map((k, i) => ({k, i, p: slotPos(i, K.length)})).sort((a, b) => a.p[1] - b.p[1]);
+  $('#houses').innerHTML = items.map(({k, i, p}) =>
+    `<g class="house" data-i="${i}" transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)}) scale(${sc})">
+      <ellipse class="slot" cx="10" cy="0" rx="70" ry="14" fill="none" stroke="#A6B9BF" stroke-dasharray="4 6"/>
+      ${houseSVG(k)}${houseLabel(k)}</g>`).join('');
+}
+
+/* ---------- Figuren ---------- */
+function addPerson(p, neu = true) {
+  const key = String(p.nr || p.name);
+  if (!p.name || people.has(key)) return;
+  people.set(key, p);
+  let x, y, t = 0;
+  do { x = 500 + (Math.random()*2-1) * 360; y = 500 + (Math.random()*2-1) * 150; t++; }
+  while (((x-500)/380)**2 + ((y-500)/165)**2 > 1 && t < 50);
+  y = Math.max(y, 465);
+  const c = FIGFARBEN[people.size % FIGFARBEN.length];
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttribute('class', 'fig' + (neu ? ' neu' : ''));
+  g.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  g.dataset.y = y;
+  g.innerHTML = `<g class="pop"><ellipse cx="0" cy="1" rx="11" ry="4" fill="#000" opacity=".25"/><g class="bob" style="--d:${(Math.random()*2).toFixed(2)}s">
+    <path d="M-9,0 Q-9,-24 0,-24 Q9,-24 9,0Z" fill="${c}"/><circle cx="0" cy="-32" r="7.5" fill="${c}"/></g>
+    <text x="0" y="-48" text-anchor="middle"></text></g>`;
+  g.querySelector('text').textContent = p.name;
+  const list = $('#people'), after = [...list.children].find(n => +n.dataset.y > y);
+  list.insertBefore(g, after || null);
+  $('#cnt').textContent = people.size;
+  if (neu) {
+    const li = document.createElement('li');
+    li.innerHTML = '<b></b> ist jetzt <span></span>';
+    li.querySelector('b').textContent = p.name; li.querySelector('span').textContent = p.job || 'Bürger*in';
+    const tk = $('#ticker'); tk.prepend(li); while (tk.children.length > 3) tk.lastChild.remove();
+  }
+  if (step === 0 || step === D.kapitel.length + 1) renderPanel();
+}
+
+const NAMEN = ['Mia','Noah','Lea','Luca','Emma','Elias','Sofia','Leon','Lina','Ben','Alina','Matteo','Nina','Jonas','Elena','Samuel','Laura','David','Ayla','Tim','Sara','Nico','Hanna','Levin','Zoe','Malik','Lia','Jan','Mila','Arian'];
+function leeren() { sync.reset(); people.clear(); $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
+function simulate(n = 6) {
+  for (let i = 0; i < n; i++) setTimeout(() => addPerson(neuerBuerger(NAMEN[Math.floor(Math.random()*NAMEN.length)])), i * 350);
+}
+function neuerBuerger(name) {
+  return { name, job: D.jobs[Math.floor(Math.random() * D.jobs.length)], nr: String(1000 + Math.floor(Math.random() * 9000)) + Date.now().toString(36).slice(-3) };
+}
+
+/* ---------- Karte ---------- */
+const proj = (lon, lat) => [(lon - 5.85) / 4.75 * 1000, (47.9 - lat) / 2.15 * 645];
+const CH = [[7.59,47.58],[8.2,47.62],[8.42,47.58],[8.57,47.8],[8.85,47.7],[9.0,47.68],[9.55,47.54],[9.67,47.38],[9.53,47.27],[9.48,47.06],[9.88,46.93],[10.47,46.87],[10.4,46.62],[10.13,46.6],[10.05,46.23],[9.68,46.3],[9.3,46.5],[9.04,45.83],[8.85,45.98],[8.6,46.12],[8.45,46.45],[8.12,46.25],[7.85,45.92],[7.55,45.98],[7.0,45.9],[6.8,46.13],[6.85,46.43],[6.5,46.45],[6.22,46.31],[5.96,46.13],[6.1,46.6],[6.45,46.95],[6.95,47.25],[6.97,47.45],[7.2,47.48],[7.5,47.45]];
+function drawMap() {
+  $('#ch').setAttribute('points', CH.map(c => proj(...c).map(v => v.toFixed(1)).join(',')).join(' '));
+  let k = 0;
+  $('#cities').innerHTML = D.staedte.map(s => {
+    const [x, y] = proj(+s.lon, +s.lat), st = !!s.start, t = st ? 1.6 : 2.6 + 0.55 * k++;
+    return `<g class="city-pt${st ? ' start' : ''}" style="--t:${t}s" ${st ? 'id="startpt"' : ''}>
+      <circle class="ring" cx="${x}" cy="${y}" r="8"/><circle class="dot" cx="${x}" cy="${y}" r="${st ? 11 : 7}"/>
+      <text x="${x + 14}" y="${y - 12}">${esc(st ? D.stadtname : s.name)}</text></g>`;
+  }).join('');
+}
+function zoomCity(on) {
+  const city = $('#city');
+  if (!on) { city.style.transform = ''; return; }
+  const pt = $('#startpt .dot'); if (!pt) return;
+  const sr = $('.stage').getBoundingClientRect(), pr = pt.getBoundingClientRect(), cr = city.getBoundingClientRect();
+  const mapScale = 1 / 1.25, cx = sr.width / 2, cy = sr.height / 2;
+  const px = cx + (pr.left + pr.width/2 - sr.left - cx) * mapScale, py = cy + (pr.top + pr.height/2 - sr.top - cy) * mapScale;
+  const s = 0.03, ox = cr.width / 2, oy = cr.height * 0.72;
+  city.style.transform = `translate(${px - ox*s}px,${py - oy*s}px) scale(${s})`;
+}
+
+/* ---------- Folien-Panel ---------- */
+function renderPanel() {
+  const N = D.kapitel.length, P = $('#panel'), logo = '<div class="logo">Kinder<br>stadt</div>';
+  const foot = `<footer><span>${step + 1}</span><span>${esc(D.stadtname)}</span></footer>`;
+  if (step === 0) {
+    P.innerHTML = `${logo}<div class="kicker">Pitch</div><h1>${esc(D.intro.titel)}</h1><p>${esc(D.intro.text)}</p>
+      <div class="qr"><div class="code" id="qr"></div><small>${people.size ? esc(people.size) + ' sind schon da.' : 'Die Stadt ist noch leer.'}</small></div>${foot}`;
+    const box = $('#qr');
+    if (D.qr_link && window.qrcode) { const q = qrcode(0, 'M'); q.addData(D.qr_link); q.make(); box.innerHTML = q.createSvgTag({cellSize: 4, margin: 0, scalable: true}); }
+    else box.textContent = 'QR-Link noch nicht eingetragen';
+  } else if (step <= N) {
+    const k = D.kapitel[step - 1];
+    const paras = String(k.text || '').split(/\n+/).filter(Boolean).map(t => `<p>${esc(t)}</p>`).join('');
+    const pts = (k.punkte || []).filter(Boolean);
+    P.innerHTML = `${logo}<div class="kicker">Kapitel ${step} von ${N} · neu in der Stadt: ${esc(k.haus)}</div><h1>${esc(k.titel)}</h1>${paras}
+      ${pts.length ? '<ul>' + pts.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>' : ''}
+      ${okBild(k.bild) ? `<img class="bild" alt="" src="${esc(k.bild)}">` : ''}${foot}`;
+  } else {
+    P.innerHTML = `${logo}<h1>${esc(D.finale.titel)}</h1><p>${esc(D.finale.text)}</p>
+      <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div><div class="zahl"><b>${D.staedte.length}</b>Städte als Ziel</div></div>${foot}`;
+  }
+}
+function go(s) {
+  const N = D.kapitel.length;
+  step = Math.max(0, Math.min(N + 1, s));
+  document.querySelectorAll('#houses .house').forEach(h => h.classList.toggle('built', +h.dataset.i < step));
+  $('#leinwand').classList.toggle('finale', step === N + 1);
+  zoomCity(step === N + 1);
+  $('#dots').innerHTML = Array.from({length: N + 2}, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
+  renderPanel();
+  sync.step(step);
+}
+
+/* ---------- Handy ---------- */
+async function ausweisBild(p) {
+  try { await document.fonts.load('700 40px Figtree'); await document.fonts.load('400 20px Figtree'); } catch (e) {}
+  const W = 1050, H = 660, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), F = (w, s) => `${w} ${s}px Aptos, Figtree, sans-serif`;
+  x.fillStyle = '#1A3C45'; x.beginPath(); x.roundRect(0, 0, W, H, 36); x.fill();
+  x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 3;
+  [260, 330].forEach(r => { x.beginPath(); x.arc(W - 40, H + 40, r, 0, 7); x.stroke(); });
+  x.fillStyle = '#A6B9BF'; x.font = F(400, 26); x.fillText('Bürgerausweis', 64, 92);
+  x.fillStyle = '#fff'; x.font = F(700, 60); x.fillText(D.stadtname, 64, 160);
+  const row = (l, v, y, big) => { x.fillStyle = '#A6B9BF'; x.font = F(400, 22); x.fillText(l, 64, y); x.fillStyle = '#fff'; x.font = F(700, big ? 52 : 36); x.fillText(v, 64, y + (big ? 56 : 44)); };
+  row('Name', p.name, 250, true); row('Beruf', p.job, 390); row('Startguthaben', `${D.startguthaben} ${D.waehrung}`, 500);
+  x.fillStyle = '#A6B9BF'; x.font = F(400, 20);
+  x.fillText(`Nr. ${p.nr.slice(0, 4)} · ausgestellt am ${new Date().toLocaleDateString('de-CH')}`, 64, 616);
+  const cx = 830, cy = 270;
+  x.fillStyle = '#F5F5F5'; x.beginPath(); x.arc(cx, cy, 128, 0, 7); x.fill();
+  x.strokeStyle = '#F5F5F5'; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, 140, 0, 7); x.stroke();
+  x.fillStyle = '#C7AA81'; x.beginPath(); x.arc(cx, cy - 46, 34, 0, 7); x.fill();
+  x.beginPath(); x.moveTo(cx - 52, cy + 92); x.quadraticCurveTo(cx - 52, cy - 4, cx, cy - 4); x.quadraticCurveTo(cx + 52, cy - 4, cx + 52, cy + 92); x.fill();
+  x.fillStyle = '#AF864C'; x.fillRect(64, 196, 80, 5);
+  return c.toDataURL('image/png');
+}
+async function zeigeAusweis(p) {
+  $('#h-img').src = await ausweisBild(p);
+  $('#h-form').hidden = true; $('#ausweis').hidden = false;
+}
+function handyStadt(s) {
+  const N = D.kapitel.length, n = Math.min(s, N);
+  $('#h-stand').textContent = s === 0 ? 'Noch ist die Stadt leer. Schau auf die Leinwand.' : s > N ? 'Fertig gebaut. Danke, dass du dabei warst!' : `Kapitel ${s} von ${N}: ${D.kapitel[s - 1].haus} steht.`;
+  const w = 600 / Math.max(N, 1);
+  $('#h-houses').innerHTML = `<rect x="0" y="128" width="600" height="22" rx="11" fill="#E4EAEC"/>` + D.kapitel.map((k, i) =>
+    `<g class="house${i < n ? ' built' : ''}" transform="translate(${(w * i + w / 2 - 8).toFixed(1)},136) scale(${Math.min(0.62, w / 170).toFixed(2)})">${houseSVG(k)}</g>`).join('');
+}
+
+/* ---------- Live-Verbindung ---------- */
+const sync = (() => {
+  let bc = null, room = null, me = null, lastStep = 0;
+  try { bc = new BroadcastChannel('kinderstadt-pitch'); } catch (e) {}
+  const send = m => { try { bc && bc.postMessage(m); } catch (e) {} };
+  const onMsg = m => {
+    if (!m || !D) return;
+    if (m.t === 'buerger' && view === 'leinwand') addPerson(m.p);
+    if (m.t === 'step' && view === 'handy') handyStadt(+m.step || 0);
+    if (m.t === 'hallo') { if (view === 'leinwand') send({t: 'step', step}); if (me) send({t: 'buerger', p: me}); }
+  };
+  if (bc) bc.onmessage = e => onMsg(e.data);
+  /* Live-Kanal über ntfy.sh (ohne Konto): Handys schicken ihren Ausweis, die Leinwand schickt das Kapitel. */
+  let kanal = '', resetAb = 0;
+  const post = m => { if (kanal) fetch('https://ntfy.sh/' + encodeURIComponent(kanal), {method: 'POST', body: JSON.stringify(m)}).catch(() => {}); };
+  const clean = p => p && ({name: String(p.name || '').slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)});
+  function live() {
+    kanal = (D && D.live_kanal) || ''; if (!kanal || !window.EventSource) return;
+    resetAb = +(LS.get('ks-reset') || 0);
+    try {
+      const es = new EventSource('https://ntfy.sh/' + encodeURIComponent(kanal) + '/sse?since=3h');
+      es.onmessage = e => {
+        let n, m; try { n = JSON.parse(e.data); if (n.event !== 'message') return; m = JSON.parse(n.message); } catch (err) { return; }
+        if (!m || (n.time || 0) * 1000 < resetAb) return;
+        if (m.t === 'buerger' && view === 'leinwand') addPerson(clean(m.p));
+        if (m.t === 'step' && view === 'handy') handyStadt(Math.max(0, Math.min(99, +m.step || 0)));
+      };
+    } catch (e) {}
+  }
+  const peers = list => {
+    for (const peer of list || []) {
+      const p = peer && (peer.presence || peer.state || peer.data || peer);
+      if (!p || typeof p !== 'object') continue;
+      if (p.role === 'buerger' && view === 'leinwand') addPerson({name: String(p.name || '').slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)});
+      if (p.role === 'leinwand' && view === 'handy') handyStadt(Math.max(0, Math.min(99, +p.step || 0)));
+    }
+  };
+  const pres = () => { if (!room) return; try { if (view === 'leinwand') room.presence({role: 'leinwand', step: lastStep}); else if (me) room.presence({role: 'buerger', ...me}); } catch (e) {} };
+  try {
+    window.claude?.use?.('room').then(r => { if (!r) return; room = r; try { r.onPeers(peers); } catch (e) {} pres(); }).catch(() => {});
+  } catch (e) {}
+  return {
+    live,
+    reset() { resetAb = Date.now(); LS.set('ks-reset', resetAb); },
+    step(s) { if (s !== lastStep && view === 'leinwand') post({t: 'step', step: s}); lastStep = s; send({t: 'step', step: s}); pres(); },
+    buerger(p, neu) { me = p; send({t: 'buerger', p}); if (neu) post({t: 'buerger', p}); pres(); },
+    hallo() { send({t: 'hallo'}); pres(); }
+  };
+})();
+
+/* ---------- Editor ---------- */
+function editor() {
+  $('#kaps').innerHTML = D.kapitel.map((k, i) => `<div class="kap" data-i="${i}">
+    <h3>Kapitel ${i + 1}</h3>
+    <label class="wide">Titel<input data-f="titel" value="${esc(k.titel)}"></label>
+    <label class="wide">Text (neue Zeile = neuer Absatz)<textarea data-f="text">${esc(k.text)}</textarea></label>
+    <label class="wide">Aufzählung (eine Zeile pro Punkt, optional)<textarea data-f="punkte">${esc((k.punkte || []).join('\n'))}</textarea></label>
+    <label>Haus, das wächst<input data-f="haus" value="${esc(k.haus)}"></label>
+    <label>Hausform<select data-f="form">${FORMS.map(f => `<option${f === k.form ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
+    <label class="wide">Bild (optional, wird rund dargestellt)<input type="file" accept="image/*" data-f="bild">${okBild(k.bild) ? '<button class="link" type="button" data-weg>Bild entfernen</button>' : ''}</label>
+  </div>`).join('');
+  $('#e-out').hidden = true; $('#sheet').hidden = false;
+}
+function readEditor() {
+  document.querySelectorAll('.kap').forEach(el => {
+    const k = D.kapitel[+el.dataset.i];
+    el.querySelectorAll('[data-f]').forEach(f => {
+      if (f.type === 'file') return;
+      k[f.dataset.f] = f.dataset.f === 'punkte' ? f.value.split('\n').map(s => s.trim()).filter(Boolean) : f.value;
+    });
+  });
+}
+function shrink(file) {
+  return new Promise(res => { const img = new Image(); img.onload = () => {
+    const s = Math.min(1, 700 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+    c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    res(c.toDataURL('image/jpeg', .8)); }; img.onerror = () => res(''); img.src = URL.createObjectURL(file); });
+}
+function applyData() { drawHouses(); drawMap(); go(step); $('#h-titel').textContent = D.stadtname; }
+
+/* ---------- Start ---------- */
+let view = 'leinwand';
+function route() {
+  view = location.hash === '#handy' ? 'handy' : 'leinwand';
+  $('#leinwand').classList.toggle('on', view === 'leinwand');
+  $('#handy').classList.toggle('on', view === 'handy');
+  if (view === 'handy') { const me = LS.get('ks-ich'); if (me) { zeigeAusweis(me); sync.buerger(me); } handyStadt(step); sync.hallo(); }
+  else { go(step); }
+}
+
+$('#vor').onclick = () => go(step + 1);
+$('#zur').onclick = () => go(step - 1);
+$('#sim').onclick = () => simulate();
+$('#leer').onclick = leeren;
+$('#edit').onclick = editor;
+$('#e-close').onclick = () => { $('#sheet').hidden = true; };
+$('#e-save').onclick = () => { readEditor(); if (!LS.set('ks-inhalt', D)) alertBox('Zu gross zum Speichern im Browser. Bitte kleinere Bilder verwenden.'); applyData(); $('#sheet').hidden = true; };
+$('#e-add').onclick = () => { readEditor(); D.kapitel.push({titel: 'Neues Kapitel', text: '', punkte: [], bild: '', haus: 'Haus', form: FORMS[D.kapitel.length % FORMS.length]}); editor(); };
+$('#e-reset').onclick = () => { LS.del('ks-inhalt'); D = structuredClone(FILE); applyData(); editor(); };
+$('#e-copy').onclick = async () => {
+  readEditor(); const t = JSON.stringify(D, null, 2), out = $('#e-out');
+  try { await navigator.clipboard.writeText(t); $('#e-copy').textContent = 'Kopiert'; } catch (e) { out.value = t; out.hidden = false; out.select(); }
+};
+function alertBox(t) { const o = $('#e-out'); o.value = t; o.hidden = false; }
+$('#kaps').addEventListener('change', async e => {
+  const f = e.target; if (f.type !== 'file' || !f.files[0]) return;
+  readEditor(); D.kapitel[+f.closest('.kap').dataset.i].bild = await shrink(f.files[0]);
+});
+$('#kaps').addEventListener('click', e => { if (e.target.matches('[data-weg]')) { readEditor(); D.kapitel[+e.target.closest('.kap').dataset.i].bild = ''; editor(); } });
+
+$('#h-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#h-name').value.trim().slice(0, 24); if (!name) return;
+  const me = neuerBuerger(name); LS.set('ks-ich', me); zeigeAusweis(me); sync.buerger(me, true);
+});
+$('#h-neu').onclick = () => { LS.del('ks-ich'); $('#h-form').hidden = false; $('#ausweis').hidden = true; $('#h-name').focus(); };
+
+document.addEventListener('keydown', e => {
+  if (view !== 'leinwand' || !$('#sheet').hidden || e.target.matches('input,textarea,select')) return;
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(step + 1); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(step - 1); }
+  else if (e.key === 's') simulate();
+  else if (e.key === 'r') leeren();
+  else if (e.key === 'i') editor();
+  else if (e.key === 'h') $('#ctrl').classList.toggle('weg');
+  else if (e.key === 'f') { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (err) {} }
+});
+const ro = new ResizeObserver(() => { if (D && step === D.kapitel.length + 1) zoomCity(true); });
+ro.observe(document.body);
+window.addEventListener('hashchange', route);
+
+fetch('inhalt.json').then(r => r.json()).then(j => {
+  FILE = j; D = LS.get('ks-inhalt') || structuredClone(j);
+  ['jobs', 'kapitel', 'staedte'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
+  D.intro = D.intro || {}; D.finale = D.finale || {};
+  drawHouses(); drawMap(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
+}).catch(() => { $('#panel').innerHTML = '<h1>Inhalte konnten nicht geladen werden</h1><p>Die Datei inhalt.json fehlt oder ist fehlerhaft.</p>'; $('#leinwand').classList.add('on'); });
+}
+</script>
+</body>
+</html>

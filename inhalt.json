@@ -1,0 +1,133 @@
+{
+  "stadtname": "Kinderstadt",
+  "waehrung": "Kartoni",
+  "startguthaben": 50,
+  "qr_link": "https://katalania.github.io/kinderstadt-pitch/#handy",
+  "live_kanal": "kinderstadt-pitch-4826c03595a2",
+  "intro": {
+    "titel": "Willkommen in der Kinderstadt",
+    "text": "Scannt den QR-Code und holt euch euren Bürgerausweis. Ab jetzt seid ihr Bürger*innen dieser Stadt."
+  },
+  "jobs": [
+    "Bäcker*in",
+    "Journalist*in",
+    "Stadtgärtner*in",
+    "Bankdirektor*in",
+    "Architekt*in",
+    "Postbot*in",
+    "Richter*in",
+    "Kartonbauer*in",
+    "Radiomoderator*in",
+    "Ärzt*in",
+    "Lehrer*in",
+    "Köch*in",
+    "Gemeinderät*in",
+    "Malermeister*in",
+    "Stadtführer*in"
+  ],
+  "kapitel": [
+    {
+      "titel": "Die Idee",
+      "text": "Platzhalter: Hier kommt der Inhalt der ersten Folie hin.\nKinder bauen aus Karton ihre eigene Stadt.",
+      "punkte": [],
+      "bild": "",
+      "haus": "Rathaus",
+      "form": "turm"
+    },
+    {
+      "titel": "Warum es das braucht",
+      "text": "Platzhalter: Inhalt der zweiten Folie.",
+      "punkte": [
+        "Punkt eins",
+        "Punkt zwei"
+      ],
+      "bild": "",
+      "haus": "Schule",
+      "form": "giebel"
+    },
+    {
+      "titel": "Demokratie erleben",
+      "text": "Platzhalter: Inhalt der dritten Folie.",
+      "punkte": [],
+      "bild": "",
+      "haus": "Parlament",
+      "form": "kuppel"
+    },
+    {
+      "titel": "So läuft es ab",
+      "text": "Platzhalter: Inhalt der vierten Folie.",
+      "punkte": [],
+      "bild": "",
+      "haus": "Werkstatt",
+      "form": "saege"
+    },
+    {
+      "titel": "Wer mitmacht",
+      "text": "Platzhalter: Inhalt der fünften Folie.",
+      "punkte": [],
+      "bild": "",
+      "haus": "Zeitung",
+      "form": "flach"
+    },
+    {
+      "titel": "Was wir brauchen",
+      "text": "Platzhalter: Inhalt der sechsten Folie.",
+      "punkte": [],
+      "bild": "",
+      "haus": "Bank",
+      "form": "giebel"
+    }
+  ],
+  "finale": {
+    "titel": "Eine Stadt. Und bald viele.",
+    "text": "Heute habt ihr eine Stadt gebaut. Morgen bauen Kinder in der ganzen Schweiz ihre eigene. Behaltet euren Bürgerausweis als Erinnerung."
+  },
+  "staedte": [
+    {
+      "name": "Pilotgemeinde",
+      "lon": 8.31,
+      "lat": 47.05,
+      "start": true
+    },
+    {
+      "name": "Zürich",
+      "lon": 8.54,
+      "lat": 47.37
+    },
+    {
+      "name": "Bern",
+      "lon": 7.45,
+      "lat": 46.95
+    },
+    {
+      "name": "Basel",
+      "lon": 7.59,
+      "lat": 47.56
+    },
+    {
+      "name": "St. Gallen",
+      "lon": 9.37,
+      "lat": 47.42
+    },
+    {
+      "name": "Lausanne",
+      "lon": 6.63,
+      "lat": 46.52
+    },
+    {
+      "name": "Lugano",
+      "lon": 8.95,
+      "lat": 46.0
+    },
+    {
+      "name": "Chur",
+      "lon": 9.53,
+      "lat": 46.85
+    },
+    {
+      "name": "Genève",
+      "lon": 6.14,
+      "lat": 46.2
+    }
+  ]
+}
