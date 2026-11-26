@@ -26,14 +26,15 @@ button{cursor:pointer;border:0;border-radius:999px;min-height:44px;padding:0 20p
 h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 
 /* ---------- Leinwand ---------- */
-#leinwand.on{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);height:100vh;min-height:520px}
+#leinwand.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);height:100vh;min-height:520px}
 .stage{position:relative;overflow:hidden;background:var(--petrol)}
 .stage>svg{position:absolute;inset:0;width:100%;height:100%}
 #city{transition:transform 1.8s cubic-bezier(.6,0,.2,1),opacity .8s 1.4s;transform-origin:0 0}
 #leinwand.finale #city{opacity:0}
 #map{opacity:0;transform:scale(1.25);transition:opacity 1.2s .6s,transform 2s .4s cubic-bezier(.3,0,.2,1);pointer-events:none}
 #leinwand.finale #map{opacity:1;transform:none}
-#leinwand.finale #ticker{opacity:0}
+#leinwand.finale #ticker,#leinwand:not(.start) #ticker{opacity:0}
+#ticker{transition:opacity .4s}
 .house .grow{transform:scale(1,0);transform-origin:50% 100%;transform-box:fill-box;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
 .house.built .grow{transform:none}
 .house .shadow{opacity:0;transition:opacity .6s}.house.built .shadow{opacity:1}
@@ -54,7 +55,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .city-pt.start text{font-size:23px;font-weight:800}
 @keyframes puls{0%{r:8}100%{r:30;opacity:0}}
 .hud{position:absolute;left:clamp(16px,3vw,40px);top:clamp(16px,3vw,36px);color:#fff;pointer-events:none}
-.hud .count{font-size:18px;color:var(--nebel)}.hud .count b{display:block;font-size:clamp(40px,5vw,64px);line-height:1;color:#fff}
+.hud .count{font-size:clamp(15px,1vw,19px);color:var(--nebel)}.hud .count b{display:block;font-size:clamp(32px,3vw,60px);line-height:1;color:#fff}
 #ticker{list-style:none;margin:12px 0 0;padding:0;font-size:15px;color:var(--nebel)}
 #ticker li{animation:drop .5s both}
 #ticker b{color:#fff}
@@ -63,10 +64,10 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .logo{position:absolute;top:22px;right:22px;width:64px;height:64px;border-radius:50%;background:var(--petrol);color:#fff;display:grid;place-items:center;
   font:600 12px/1 var(--font);text-align:center;box-shadow:0 0 0 3px #fff,0 0 0 4px var(--petrol)}
 .logo.hub{width:96px;height:96px;font-size:16px;line-height:1.05;text-align:left;padding-left:22px;place-items:center start}
-.panel .kicker{color:var(--schiefer);font-size:15px;margin-bottom:12px}
-.panel h1{font-size:clamp(30px,3.2vw,46px);color:var(--petrol)}
-.panel p{font-size:clamp(16px,1.35vw,20px);max-width:36em;margin:18px 0 0;color:var(--text)}
-.panel ul{margin:16px 0 0;padding-left:1.2em;font-size:clamp(16px,1.3vw,19px)}
+.panel .kicker{color:var(--schiefer);font-size:clamp(16px,1.1vw,21px);margin-bottom:14px}
+.panel h1{font-size:clamp(36px,3.6vw,68px);color:var(--petrol)}
+.panel p{font-size:clamp(22px,1.7vw,32px);max-width:32em;margin:22px 0 0;color:var(--text)}
+.panel ul{margin:18px 0 0;padding-left:1.2em;font-size:clamp(22px,1.7vw,32px)}
 .panel .bild{width:clamp(120px,13vw,200px);aspect-ratio:1;border-radius:50%;object-fit:cover;margin-top:24px;box-shadow:0 0 0 6px var(--hell)}
 .panel footer{position:absolute;left:clamp(24px,3.4vw,56px);bottom:22px;font-size:13px;color:var(--schiefer);display:flex;gap:28px}
 .qr{margin-top:24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
@@ -131,13 +132,16 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
       <polygon id="ch" fill="#24505B" stroke="#A6B9BF" stroke-width="2.5" stroke-linejoin="round"/>
       <g id="cities"></g>
     </svg>
-    <svg id="city" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-label="Die Kinderstadt">
-      <circle cx="500" cy="420" r="330" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2"/>
-      <circle cx="500" cy="420" r="400" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="2"/>
-      <ellipse cx="500" cy="500" rx="440" ry="190" fill="#24505B"/>
-      <ellipse cx="500" cy="500" rx="440" ry="190" fill="none" stroke="#A6B9BF" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round"/>
+    <svg id="city" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMid meet" aria-label="Die Kinderstadt">
+      <ellipse cx="200" cy="590" rx="194" ry="380" fill="#24505B"/>
+      <ellipse cx="200" cy="590" rx="194" ry="380" fill="none" stroke="#A6B9BF" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round"/>
+      <g stroke="#A6B9BF" stroke-opacity=".16" stroke-width="12" stroke-linecap="round" fill="none">
+        <path d="M139 250V930M261 250V930M40 355H360M18 505H382M18 655H382M40 805H360"/>
+      </g>
+      <ellipse cx="200" cy="598" rx="88" ry="30" fill="#2E6170"/>
       <g id="houses"></g>
       <g id="people"></g>
+      <g id="labels"></g>
     </svg>
     <div class="hud"><div class="count"><b id="cnt">0</b>Bürger*innen</div><ul id="ticker"></ul></div>
   </div>
@@ -217,17 +221,28 @@ function houseSVG(k, w = 112, h = 84) {
 }
 function houseLabel(k, h = 84) { return `<g class="grow"><rect x="-56" y="12" width="112" height="24" rx="12" fill="#fff"/><text x="0" y="29" text-anchor="middle" font-size="14" font-weight="700" fill="#1A3C45" font-family="Figtree,sans-serif">${esc(k.haus)}</text></g>`; }
 
-function slotPos(i, n) {
-  const t = n === 1 ? .5 : i / (n - 1);
-  return [130 + 740 * t, 400 - 70 * Math.sin(Math.PI * t)];
+/* Dorf: die Stadt wächst von der Mitte (Platz) nach aussen. Raster 3 Spalten × 5 Reihen mit leichtem Versatz. */
+const SLOTS = [[200,580],[78,580],[322,580],[200,730],[200,430],[78,730],[322,430],[78,430],[322,730],[200,880],[200,280],[78,880],[322,280],[78,280],[322,880]];
+const JITTER = [[0,0],[-6,10],[8,-8],[5,8],[-4,-10],[7,-6],[-8,9],[4,12],[-5,-4],[-3,0],[6,8],[5,-6],[-6,4],[4,6],[-4,-8]];
+const HAUS_SC = 0.6;
+function slotPos(i) {
+  const s = SLOTS[i % SLOTS.length], j = JITTER[i % JITTER.length], ring = Math.floor(i / SLOTS.length);
+  return [s[0] + j[0] + ring * 14, s[1] + j[1] - ring * 20];
+}
+function labelSVG(k, p, i) {
+  const name = String(k.haus || ''), w = Math.max(70, name.length * 9.6 + 24);
+  return `<g class="house lbl" data-i="${i}" transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)})"><g class="grow">
+    <rect x="${-w/2}" y="8" width="${w}" height="26" rx="13" fill="#fff"/>
+    <text x="0" y="26.5" text-anchor="middle" font-size="17" font-weight="700" fill="#1A3C45" font-family="Aptos,Figtree,sans-serif">${esc(name)}</text></g></g>`;
 }
 function drawHouses() {
-  const K = D.kapitel, sc = Math.min(.9, 5.6 / Math.max(K.length, 1));
-  const items = K.map((k, i) => ({k, i, p: slotPos(i, K.length)})).sort((a, b) => a.p[1] - b.p[1]);
+  const K = D.kapitel;
+  const items = K.map((k, i) => ({k, i, p: slotPos(i)})).sort((a, b) => a.p[1] - b.p[1]);
   $('#houses').innerHTML = items.map(({k, i, p}) =>
-    `<g class="house" data-i="${i}" transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)}) scale(${sc})">
+    `<g class="house" data-i="${i}" transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)}) scale(${HAUS_SC})">
       <ellipse class="slot" cx="10" cy="0" rx="70" ry="14" fill="none" stroke="#A6B9BF" stroke-dasharray="4 6"/>
-      ${houseSVG(k)}${houseLabel(k)}</g>`).join('');
+      ${houseSVG(k)}</g>`).join('');
+  $('#labels').innerHTML = items.map(({k, i, p}) => labelSVG(k, p, i)).join('');
 }
 
 /* ---------- Figuren ---------- */
@@ -236,9 +251,8 @@ function addPerson(p, neu = true) {
   if (!p.name || people.has(key)) return;
   people.set(key, p);
   let x, y, t = 0;
-  do { x = 500 + (Math.random()*2-1) * 360; y = 500 + (Math.random()*2-1) * 150; t++; }
-  while (((x-500)/380)**2 + ((y-500)/165)**2 > 1 && t < 50);
-  y = Math.max(y, 465);
+  do { x = 200 + (Math.random()*2-1) * 150; y = 620 + (Math.random()*2-1) * 280; t++; }
+  while (((x-200)/150)**2 + ((y-620)/280)**2 > 1 && t < 50);
   const c = FIGFARBEN[people.size % FIGFARBEN.length];
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   g.setAttribute('class', 'fig' + (neu ? ' neu' : ''));
@@ -319,8 +333,9 @@ function renderPanel() {
 function go(s) {
   const N = D.kapitel.length;
   step = Math.max(0, Math.min(N + 1, s));
-  document.querySelectorAll('#houses .house').forEach(h => h.classList.toggle('built', +h.dataset.i < step));
+  document.querySelectorAll('#houses .house, #labels .house').forEach(h => h.classList.toggle('built', +h.dataset.i < step));
   $('#leinwand').classList.toggle('finale', step === N + 1);
+  $('#leinwand').classList.toggle('start', step === 0);
   zoomCity(step === N + 1);
   $('#dots').innerHTML = Array.from({length: N + 2}, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
   renderPanel();
