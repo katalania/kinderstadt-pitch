@@ -71,6 +71,10 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .panel h1{font-size:clamp(36px,3.6vw,68px);color:var(--petrol)}
 .panel p{font-size:clamp(22px,1.7vw,32px);max-width:32em;margin:22px 0 0;color:var(--text)}
 .panel ul{margin:18px 0 0;padding-left:1.2em;font-size:clamp(22px,1.7vw,32px)}
+.karten{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,1vw,20px);margin-top:clamp(18px,1.6vw,30px);max-width:1100px}
+.karte{background:var(--teal);color:#fff;border-radius:16px;padding:clamp(12px,1.1vw,26px) clamp(14px,1.2vw,28px)}
+.karte b{display:block;font-size:clamp(23px,1.6vw,30px);line-height:1.15;margin-bottom:4px}
+.karte span{display:block;font-size:clamp(21.5px,1.35vw,26px);line-height:1.3}
 .panel .bild{width:clamp(120px,13vw,200px);aspect-ratio:1;border-radius:50%;object-fit:cover;margin-top:24px;box-shadow:0 0 0 6px var(--hell)}
 .panel footer{position:absolute;left:clamp(24px,3.4vw,56px);bottom:22px;font-size:13px;color:var(--schiefer);display:flex;gap:28px}
 .qr{margin-top:24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
@@ -293,7 +297,7 @@ function zeichneFigur(key, p) {
 }
 function zeigeFiguren() { $('#people').innerHTML = ''; people.forEach((p, key) => zeichneFigur(key, p)); }
 function figurenInsHaus() {
-  const figs = [...document.querySelectorAll('#people .fig')], F = featRect(), L = $('#leinwand').getBoundingClientRect();
+  const figs = [...document.querySelectorAll('#people .fig')], F = featRect(0), L = $('#leinwand').getBoundingClientRect();
   if (!figs.length) return;
   if (!F || ruhig) { $('#people').innerHTML = ''; return; }
   const tx = F.x + F.w * 0.474, ty = F.y + F.h * 0.84;
@@ -318,7 +322,7 @@ function addPerson(p, neu = true) {
   const key = String(p.nr || p.name);
   if (!p.name || people.has(key)) return;
   people.set(key, p);
-  $('#cnt').textContent = people.size;
+  $('#cnt').textContent = people.size; speichereStand();
   if (step !== 0) { if (step === D.kapitel.length + 1) renderPanel(); return; }
   if (abst > 0) { zeichneFigur(key, p); renderPanel(); return; }
   zeichneFigur(key, p);
@@ -332,7 +336,7 @@ function addPerson(p, neu = true) {
 }
 
 const NAMEN = ['Mia','Noah','Lea','Luca','Emma','Elias','Sofia','Leon','Lina','Ben','Alina','Matteo','Nina','Jonas','Elena','Samuel','Laura','David','Ayla','Tim','Sara','Nico','Hanna','Levin','Zoe','Malik','Lia','Jan','Mila','Arian'];
-function leeren() { sync.reset(); people.clear(); figPos.clear(); stimmen.clear(); simNr.clear(); abst = 0; kapital = null; $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
+function leeren() { LS.del('ks-stand'); sync.reset(); people.clear(); figPos.clear(); stimmen.clear(); simNr.clear(); abst = 0; kapital = null; $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
 const simNr = new Set();
 function simulate(n = 6) {
   for (let i = 0; i < n; i++) setTimeout(() => {
@@ -391,14 +395,29 @@ function ergebnis() {
 function zaehleStimme(nr, wahl) {
   nr = String(nr || '').slice(0, 20); wahl = +wahl;
   if (!nr || !optionen().includes(wahl) || stimmen.has(nr)) return;
-  stimmen.set(nr, wahl);
+  stimmen.set(nr, wahl); speichereStand();
   if (view === 'leinwand' && step === 0 && abst === 1) renderPanel();
 }
 function setAbst(a) {
   abst = Math.max(0, Math.min(2, a));
   kapital = abst === 2 ? ergebnis().betrag : null;
   $('#leinwand').classList.toggle('start', step === 0 && abst === 0);
-  zeichnePunkte(); renderPanel(); sync.step(step);
+  zeichnePunkte(); renderPanel(); sync.step(step); speichereStand();
+}
+/* Die Leinwand merkt sich ihren Stand (Kapitel, Abstimmung, Startkapital, Stimmen, Bürger*innen).
+   Lädt der Browser während des Pitches neu, geht es genau dort weiter. «Neu starten» löscht den Stand. */
+function speichereStand() {
+  if (view !== 'leinwand' || !D) return;
+  LS.set('ks-stand', {step, abst, kapital, stimmen: [...stimmen], people: [...people.values()], sim: [...simNr]});
+}
+function ladeStand() {
+  const st = LS.get('ks-stand'); if (!st || typeof st !== 'object') return;
+  const N = D.kapitel.length;
+  step = Math.max(0, Math.min(N + 1, +st.step || 0)); abst = Math.max(0, Math.min(2, +st.abst || 0));
+  kapital = optionen().includes(+st.kapital) ? +st.kapital : null;
+  (st.sim || []).forEach(nr => simNr.add(String(nr)));
+  (st.stimmen || []).forEach(([nr, w]) => { if (optionen().includes(+w)) stimmen.set(String(nr), +w); });
+  (st.people || []).forEach(p => p && p.name && addPerson({name: String(p.name).slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)}, false));
 }
 function weiter() { if (step === 0 && abst < 2) setAbst(abst + 1); else go(step + 1); }
 function zurueck() {
@@ -445,6 +464,7 @@ function renderPanel() {
     const kap = leinwandKapital();
     P.innerHTML = `${logo}<div class="kicker">Kapitel ${step} von ${N} · neu in der Stadt: ${esc(k.haus)} · kostet jede:n ${kosten(kap, step, N)} ${esc(D.waehrung)}, übrig ${rest(kap, step, N)}</div><h1>${esc(k.titel)}</h1>${paras}
       ${pts.length ? '<ul>' + pts.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>' : ''}
+      ${mitKarten(step - 1) ? '<div class="karten">' + k.karten.slice(0, 4).map(c => `<div class="karte"><b>${esc(c.titel)}</b><span>${esc(c.text)}</span></div>`).join('') + '</div>' : ''}
       ${okBild(k.bild) ? `<img class="bild" alt="" src="${esc(k.bild)}">` : ''}${foot}`;
   } else {
     P.innerHTML = `${logo}<h1>${esc(D.finale.titel)}</h1><p>${esc(D.finale.text)}</p>
@@ -457,10 +477,12 @@ const ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let featIdx = -1, flights = [];
 const inFlight = new Set();
 const bigSVG = k => `<svg viewBox="${FEAT_VB}"><g class="house built">${houseSVG(k)}</g></svg>`;
-function featRect() {
+/* Kapitel mit Karten bekommen ein kleineres grosses Haus, damit die Karten Platz haben. */
+const mitKarten = i => !!(D.kapitel[i] && Array.isArray(D.kapitel[i].karten) && D.kapitel[i].karten.length);
+function featRect(i = step - 1) {
   const L = $('#leinwand').getBoundingClientRect(), P = $('#panel').getBoundingClientRect();
   if (view !== 'leinwand' || P.top - L.top > 10 || P.width < 500) return null;
-  const w = Math.min(P.width * 0.3, P.height * 0.55 * FEAT_AR), h = w / FEAT_AR;
+  const w = Math.min(P.width * (mitKarten(i) ? 0.2 : 0.3), P.height * 0.55 * FEAT_AR), h = w / FEAT_AR;
   return {x: P.right - L.left - w - Math.max(32, P.width * 0.04), y: P.top - L.top + (P.height - h) / 2, w, h};
 }
 function slotRect(i) {
@@ -476,7 +498,7 @@ function syncBuilt(sofort = []) {
   if (sofort.length) requestAnimationFrame(() => requestAnimationFrame(() => els.forEach(h => h.classList.remove('sofort'))));
 }
 function showFeature(i, erscheinen) {
-  const el = $('#feature'), F = featRect();
+  const el = $('#feature'), F = featRect(i);
   el.getAnimations().forEach(a => a.cancel());
   if (i < 0 || !F || !D.kapitel[i]) { el.hidden = true; featIdx = -1; $('#panel').classList.remove('mit-haus'); return; }
   featIdx = i; el.innerHTML = bigSVG(D.kapitel[i]); el.hidden = false;
@@ -488,8 +510,8 @@ function showFeature(i, erscheinen) {
   ], {duration: 650, delay: erscheinen === 'spaet' ? 550 : 0, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'backwards'});
 }
 function fly(i, from, to, fertig) {
-  const F = featRect();
-  if (!F || ruhig) { fertig(); return; }
+  const F = from;
+  if (!featRect() || !from || !to || ruhig) { fertig(); return; }
   const el = document.createElement('div');
   el.className = 'flyer'; el.innerHTML = bigSVG(D.kapitel[i]);
   el.style.width = F.w + 'px'; el.style.height = F.h + 'px';
@@ -513,14 +535,14 @@ function go(s) {
   if (F && step === prev + 1 && prev >= 1) {
     const i = prev - 1;
     inFlight.add(i);
-    fly(i, F, slotRect(i), () => { inFlight.delete(i); syncBuilt([i]); });
+    fly(i, featRect(i), slotRect(i), () => { inFlight.delete(i); syncBuilt([i]); });
     showFeature(step <= N ? step - 1 : -1, 'spaet');
     syncBuilt();
   } else if (F && step === prev - 1 && step >= 1) {
     const i = step - 1;
     showFeature(-1);
     syncBuilt([i]);
-    fly(i, slotRect(i), F, () => showFeature(i, false));
+    fly(i, slotRect(i), featRect(i), () => showFeature(i, false));
   } else {
     showFeature(step >= 1 && step <= N ? step - 1 : -1, step !== prev);
     syncBuilt();
@@ -533,6 +555,7 @@ function go(s) {
   zeichnePunkte();
   renderPanel();
   sync.step(step);
+  speichereStand();
 }
 
 /* ---------- Handy ---------- */
@@ -691,6 +714,7 @@ function editor() {
     <label class="wide">Titel<input data-f="titel" value="${esc(k.titel)}"></label>
     <label class="wide">Text (neue Zeile = neuer Absatz)<textarea data-f="text">${esc(k.text)}</textarea></label>
     <label class="wide">Aufzählung (eine Zeile pro Punkt, optional)<textarea data-f="punkte">${esc((k.punkte || []).join('\n'))}</textarea></label>
+    <label class="wide">Karten (optional, 2 bis 4, eine Zeile pro Karte: «Überschrift: Text»)<textarea data-f="karten">${esc((k.karten || []).map(c => `${c.titel}: ${c.text}`).join('\n'))}</textarea></label>
     <label>Haus, das wächst<input data-f="haus" value="${esc(k.haus)}"></label>
     <label>Hausform<select data-f="form">${FORMS.map(f => `<option${f === k.form ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
     <label class="wide">Bild (optional, wird rund dargestellt)<input type="file" accept="image/*" data-f="bild">${okBild(k.bild) ? '<button class="link" type="button" data-weg>Bild entfernen</button>' : ''}</label>
@@ -702,6 +726,7 @@ function readEditor() {
     const k = D.kapitel[+el.dataset.i];
     el.querySelectorAll('[data-f]').forEach(f => {
       if (f.type === 'file') return;
+      if (f.dataset.f === 'karten') { k.karten = f.value.split('\n').map(z => z.trim()).filter(Boolean).slice(0, 4).map(z => { const i = z.indexOf(':'); return i > 0 ? {titel: z.slice(0, i).trim(), text: z.slice(i + 1).trim()} : {titel: z, text: ''}; }); return; }
       k[f.dataset.f] = f.dataset.f === 'punkte' ? f.value.split('\n').map(s => s.trim()).filter(Boolean) : f.value;
     });
   });
@@ -775,7 +800,9 @@ fetch('inhalt.json', {cache: 'no-store'}).then(r => r.json()).then(j => {
   FILE = j; D = LS.get('ks-inhalt') || structuredClone(j);
   ['jobs', 'kapitel'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
   D.intro = D.intro || {}; D.finale = D.finale || {};
-  drawHouses(); drawMap(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
+  drawHouses(); drawMap(); $('#h-titel').textContent = D.stadtname;
+  if (location.hash !== '#handy') ladeStand();
+  route(); sync.live();
 }).catch(() => { $('#panel').innerHTML = '<h1>Inhalte konnten nicht geladen werden</h1><p>Die Datei inhalt.json fehlt oder ist fehlerhaft.</p>'; $('#leinwand').classList.add('on'); });
 }
 </script>

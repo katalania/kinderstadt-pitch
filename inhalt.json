@@ -61,11 +61,29 @@
     },
     {
       "titel": "Markt & Impact",
-      "text": "Platzhalter: Inhalt folgt.",
+      "text": "Wirkungsziele: Eine Stadt von Kindern. Für Kinder.",
       "punkte": [],
       "bild": "",
       "haus": "Markthalle",
-      "form": "flach"
+      "form": "flach",
+      "karten": [
+        {
+          "titel": "Partizipation",
+          "text": "Kinder stimmen ab, stellen Regeln auf und entscheiden in Stadtversammlungen mit."
+        },
+        {
+          "titel": "Selbstwirksamkeit",
+          "text": "Jedes Kind übernimmt mindestens eine aktive Aufgabe und sieht, dass seine Ideen etwas bewirken."
+        },
+        {
+          "titel": "Soziale Kompetenzen",
+          "text": "Beim gemeinsamen Planen, Bauen und Verhandeln lernen Kinder, Konflikte zu lösen."
+        },
+        {
+          "titel": "Zugang zu non-formaler Bildung",
+          "text": "Die Kinderstadt ist kostenlos und offen für alle, unabhängig von Interessen und Voraussetzungen."
+        }
+      ]
     },
     {
       "titel": "Wettbewerb",
