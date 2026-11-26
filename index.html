@@ -124,7 +124,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 #ausweis .tipp{font-size:14px;color:var(--schiefer);margin:12px 4px}
 .h-stadt{background:#fff;border-radius:18px;padding:18px 20px;margin-top:18px;color:var(--petrol)}
 .h-stadt h2{font-size:19px}.h-stadt p{margin:4px 0 10px;font-size:15px;color:var(--schiefer)}
-.h-stadt svg{width:100%;height:auto;display:block}
+.h-stadt svg{width:100%;height:auto;display:block;background:var(--petrol);border-radius:14px}
 .link{background:none;color:var(--teal);padding:0;min-height:40px;font-weight:600;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -474,12 +474,20 @@ async function zeigeAusweis(p) {
   $('#h-img').src = await ausweisBild(p);
   $('#h-form').hidden = true; $('#ausweis').hidden = false;
 }
+/* Das Handy zeigt dasselbe Dorf wie die Leinwand, mit allen Häusern bis zum aktuellen Kapitel. */
+let handyStand = -1;
 function handyStadt(s) {
-  const N = D.kapitel.length, n = Math.min(s, N);
-  $('#h-stand').textContent = s === 0 ? 'Noch ist die Stadt leer. Schau auf die Leinwand.' : s > N ? 'Fertig gebaut. Danke, dass du dabei warst!' : `Kapitel ${s} von ${N}: ${D.kapitel[s - 1].haus} steht.`;
-  const w = 600 / Math.max(N, 1);
-  $('#h-houses').innerHTML = `<rect x="0" y="128" width="600" height="22" rx="11" fill="#E4EAEC"/>` + D.kapitel.map((k, i) =>
-    `<g class="house${i < n ? ' built' : ''}" transform="translate(${(w * i + w / 2 - 8).toFixed(1)},136) scale(${Math.min(0.62, w / 170).toFixed(2)})">${houseSVG(k)}</g>`).join('');
+  const N = D.kapitel.length, n = Math.min(s, N), svg = $('#h-houses');
+  $('#h-stand').textContent = s === 0 ? 'Noch ist die Stadt leer. Schau auf die Leinwand.' : s > N ? `Fertig gebaut: ${N} Häuser. Danke, dass du dabei warst!` : `Kapitel ${s} von ${N} · ${D.kapitel[s - 1].titel}: ${D.kapitel[s - 1].haus} steht.`;
+  if (!svg.querySelector('.house') || svg.dataset.n !== String(N)) {
+    const ys = D.kapitel.map((_, i) => slotPos(i)[1]), top = Math.min(...ys) - 140, bottom = Math.max(...ys) + 45;
+    svg.setAttribute('viewBox', `0 ${top} 400 ${bottom - top}`); svg.dataset.n = N;
+    const items = D.kapitel.map((k, i) => ({k, i, p: slotPos(i)})).sort((a, b) => a.p[1] - b.p[1]);
+    svg.innerHTML = items.map(({k, i, p}) => `<g class="house" data-i="${i}" transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)}) scale(${HAUS_SC})">${houseSVG(k)}</g>`).join('')
+      + items.map(({k, i, p}) => labelSVG(k, p, i)).join('');
+  }
+  svg.querySelectorAll('.house').forEach(h => h.classList.toggle('built', +h.dataset.i < n));
+  handyStand = s;
 }
 
 /* ---------- Live-Verbindung ---------- */
@@ -496,6 +504,7 @@ const sync = (() => {
   if (bc) bc.onmessage = e => onMsg(e.data);
   /* Live-Kanal über ntfy.sh (ohne Konto): Handys schicken ihren Ausweis, die Leinwand schickt das Kapitel. */
   let kanal = '', resetAb = 0;
+  let stepTimer = 0, lastPosted = 0;
   const post = m => { if (kanal) fetch('https://ntfy.sh/' + encodeURIComponent(kanal), {method: 'POST', body: JSON.stringify(m)}).catch(() => {}); };
   const clean = p => p && ({name: String(p.name || '').slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)});
   function live() {
@@ -526,7 +535,15 @@ const sync = (() => {
   return {
     live,
     reset() { resetAb = Date.now(); LS.set('ks-reset', resetAb); },
-    step(s) { if (s !== lastStep && view === 'leinwand') post({t: 'step', step: s}); lastStep = s; send({t: 'step', step: s}); pres(); },
+    /* Kapitelwechsel gebündelt senden: erst wenn 1.2 s nicht mehr geklickt wurde, und nur wenn sich der Stand geändert hat.
+       Spart ntfy-Nachrichten (Tageslimit 250 pro IP-Adresse). */
+    step(s) {
+      if (view === 'leinwand' && s !== lastStep) {
+        clearTimeout(stepTimer);
+        stepTimer = setTimeout(() => { if (s !== lastPosted) { post({t: 'step', step: s}); lastPosted = s; } }, 1200);
+      }
+      lastStep = s; send({t: 'step', step: s}); pres();
+    },
     buerger(p, neu) { me = p; send({t: 'buerger', p}); if (neu) post({t: 'buerger', p}); pres(); },
     hallo() { send({t: 'hallo'}); pres(); }
   };
