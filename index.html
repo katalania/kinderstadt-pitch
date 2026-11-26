@@ -33,10 +33,10 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .house.sofort .grow,.house.sofort .shadow,.house.sofort .slot{transition:none}
 .stage{position:relative;overflow:hidden;background:var(--petrol)}
 .stage>svg{position:absolute;inset:0;width:100%;height:100%}
-#city{transition:transform 1.8s cubic-bezier(.6,0,.2,1),opacity .8s 1.4s;transform-origin:0 0}
-#leinwand.finale #city{opacity:0}
-#map{opacity:0;transform:scale(1.25);transition:opacity 1.2s .6s,transform 2s .4s cubic-bezier(.3,0,.2,1);pointer-events:none}
-#leinwand.finale #map{opacity:1;transform:none}
+#city{transition:transform 1.6s cubic-bezier(.6,0,.2,1);transform-origin:50% 58%}
+#leinwand.finale #city{transform:scale(.42);transition-delay:1s}
+#zukunft .dorf{opacity:0;transition:opacity .8s}
+#leinwand.finale #zukunft .dorf{opacity:1;transition-delay:calc(2.2s + var(--n) * .3s)}
 #leinwand.finale #ticker,#leinwand:not(.start) #ticker{opacity:0}
 #ticker{transition:opacity .4s}
 .house .grow{transform:scale(1,0);transform-origin:50% 100%;transform-box:fill-box;transition:transform .9s cubic-bezier(.3,1.5,.5,1)}
@@ -51,14 +51,6 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 @keyframes drop{from{transform:translateY(-60px);opacity:0}}
 @keyframes bob{50%{transform:translateY(-3px)}}
 @keyframes name{0%,80%{opacity:1}100%{opacity:0}}
-.city-pt circle.dot{fill:var(--nebel);transition:fill .5s,r .5s;transition-delay:var(--t)}
-.city-pt circle.ring{fill:none;stroke:var(--sand);stroke-width:2;opacity:0;transition:opacity .5s;transition-delay:var(--t)}
-.city-pt text{fill:#fff;font:600 19px var(--font);opacity:0;transition:opacity .5s;transition-delay:var(--t)}
-#leinwand.finale .city-pt circle.dot{fill:var(--sand)}
-#leinwand.finale .city-pt circle.ring{opacity:1;animation:puls 2s infinite;animation-delay:var(--t)}
-#leinwand.finale .city-pt text{opacity:1}
-.city-pt.start text{font-size:23px;font-weight:800}
-@keyframes puls{0%{r:8}100%{r:30;opacity:0}}
 .hud{position:absolute;left:clamp(16px,3vw,40px);top:clamp(16px,3vw,36px);color:#fff;pointer-events:none}
 .hud .count{font-size:clamp(15px,1vw,19px);color:var(--nebel)}.hud .count b{display:block;font-size:clamp(32px,3vw,60px);line-height:1;color:#fff}
 #ticker{list-style:none;margin:12px 0 0;padding:0;font-size:15px;color:var(--nebel)}
@@ -133,10 +125,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 
 <div id="leinwand" class="view">
   <div class="stage">
-    <svg id="map" viewBox="0 0 1000 645" preserveAspectRatio="xMidYMid meet" aria-label="Karte der Schweiz">
-      <polygon id="ch" fill="#24505B" stroke="#A6B9BF" stroke-width="2.5" stroke-linejoin="round"/>
-      <g id="cities"></g>
-    </svg>
+    <svg id="zukunft" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
     <svg id="city" viewBox="0 0 400 1000" preserveAspectRatio="xMidYMid meet" aria-label="Die Kinderstadt">
       <g id="houses"></g>
       <g id="people"></g>
@@ -322,28 +311,12 @@ function neuerBuerger(name) {
   return { name, job: D.jobs[Math.floor(Math.random() * D.jobs.length)], nr: String(1000 + Math.floor(Math.random() * 9000)) + Date.now().toString(36).slice(-3) };
 }
 
-/* ---------- Karte ---------- */
-const proj = (lon, lat) => [(lon - 5.85) / 4.75 * 1000, (47.9 - lat) / 2.15 * 645];
-const CH = [[7.59,47.58],[8.2,47.62],[8.42,47.58],[8.57,47.8],[8.85,47.7],[9.0,47.68],[9.55,47.54],[9.67,47.38],[9.53,47.27],[9.48,47.06],[9.88,46.93],[10.47,46.87],[10.4,46.62],[10.13,46.6],[10.05,46.23],[9.68,46.3],[9.3,46.5],[9.04,45.83],[8.85,45.98],[8.6,46.12],[8.45,46.45],[8.12,46.25],[7.85,45.92],[7.55,45.98],[7.0,45.9],[6.8,46.13],[6.85,46.43],[6.5,46.45],[6.22,46.31],[5.96,46.13],[6.1,46.6],[6.45,46.95],[6.95,47.25],[6.97,47.45],[7.2,47.48],[7.5,47.45]];
-function drawMap() {
-  $('#ch').setAttribute('points', CH.map(c => proj(...c).map(v => v.toFixed(1)).join(',')).join(' '));
-  let k = 0;
-  $('#cities').innerHTML = D.staedte.map(s => {
-    const [x, y] = proj(+s.lon, +s.lat), st = !!s.start, t = st ? 1.6 : 2.6 + 0.55 * k++;
-    return `<g class="city-pt${st ? ' start' : ''}" style="--t:${t}s" ${st ? 'id="startpt"' : ''}>
-      <circle class="ring" cx="${x}" cy="${y}" r="8"/><circle class="dot" cx="${x}" cy="${y}" r="${st ? 11 : 7}"/>
-      <text x="${x + 14}" y="${y - 12}">${esc(st ? D.stadtname : s.name)}</text></g>`;
-  }).join('');
-}
-function zoomCity(on) {
-  const city = $('#city');
-  if (!on) { city.style.transform = ''; return; }
-  const pt = $('#startpt .dot'); if (!pt) return;
-  const sr = $('.stage').getBoundingClientRect(), pr = pt.getBoundingClientRect(), cr = city.getBoundingClientRect();
-  const mapScale = 1 / 1.25, cx = sr.width / 2, cy = sr.height / 2;
-  const px = cx + (pr.left + pr.width/2 - sr.left - cx) * mapScale, py = cy + (pr.top + pr.height/2 - sr.top - cy) * mapScale;
-  const s = 0.03, ox = cr.width / 2, oy = cr.height * 0.72;
-  city.style.transform = `translate(${px - ox*s}px,${py - oy*s}px) scale(${s})`;
+/* ---------- Schluss: Zoom-out, rundherum entstehen weitere Kinderstädte ---------- */
+const ZUKUNFT = [[95,300],[305,280],[48,560],[352,600],[95,850],[305,840]];
+function drawZukunft() {
+  const haus = (x, y, dach) => `<rect x="${x - 11}" y="${y - 18}" width="22" height="18" fill="#24505B" stroke="#A6B9BF" stroke-width="2"/>`
+    + (dach ? `<polygon points="${x - 14},${y - 18} ${x},${y - 32} ${x + 14},${y - 18}" fill="#24505B" stroke="#A6B9BF" stroke-width="2" stroke-linejoin="round"/>` : `<rect x="${x - 13}" y="${y - 23}" width="26" height="5" fill="#A6B9BF"/>`);
+  $('#zukunft').innerHTML = ZUKUNFT.map(([x, y], n) => `<g class="dorf" style="--n:${n}">${haus(x - 26, y, true)}${haus(x, y - 12, false)}${haus(x + 26, y + 2, true)}</g>`).join('');
 }
 
 /* ---------- Folien-Panel ---------- */
@@ -366,7 +339,7 @@ function renderPanel() {
       ${okBild(k.bild) ? `<img class="bild" alt="" src="${esc(k.bild)}">` : ''}${foot}`;
   } else {
     P.innerHTML = `${logo}<h1>${esc(D.finale.titel)}</h1><p>${esc(D.finale.text)}</p>
-      <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div><div class="zahl"><b>${D.staedte.length}</b>Städte als Ziel</div></div>${foot}`;
+      <div class="zahlen"><div class="zahl"><b>${people.size}</b>Bürger*innen heute</div><div class="zahl"><b>${N}</b>Häuser gebaut</div></div>${foot}`;
   }
 }
 /* ---------- Grosses Haus des laufenden Kapitels ---------- */
@@ -422,14 +395,19 @@ function go(s) {
   const N = D.kapitel.length, prev = step;
   step = Math.max(0, Math.min(N + 1, s));
   flights.forEach(a => { a.cancel(); a.effect?.target?.remove(); }); flights = []; inFlight.clear();
+  if (prev === N + 1 && step !== N + 1) {
+    /* Zoom sofort zurücksetzen, damit die Flugbahn zurück aus der Stadt stimmt */
+    const c = $('#city'); c.style.transition = 'none'; $('#leinwand').classList.remove('finale');
+    c.getBoundingClientRect(); requestAnimationFrame(() => { c.style.transition = ''; });
+  }
   const F = featRect();
-  if (F && step === prev + 1 && prev >= 1 && step <= N) {
+  if (F && step === prev + 1 && prev >= 1) {
     const i = prev - 1;
     inFlight.add(i);
     fly(i, F, slotRect(i), () => { inFlight.delete(i); syncBuilt([i]); });
-    showFeature(step - 1, 'spaet');
+    showFeature(step <= N ? step - 1 : -1, 'spaet');
     syncBuilt();
-  } else if (F && step === prev - 1 && step >= 1 && prev <= N) {
+  } else if (F && step === prev - 1 && step >= 1) {
     const i = step - 1;
     showFeature(-1);
     syncBuilt([i]);
@@ -442,7 +420,6 @@ function go(s) {
   if (step === 0 && prev !== 0) zeigeFiguren();
   $('#leinwand').classList.toggle('finale', step === N + 1);
   $('#leinwand').classList.toggle('start', step === 0);
-  zoomCity(step === N + 1);
   $('#dots').innerHTML = Array.from({length: N + 2}, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
   renderPanel();
   sync.step(step);
@@ -577,7 +554,7 @@ function shrink(file) {
     c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     res(c.toDataURL('image/jpeg', .8)); }; img.onerror = () => res(''); img.src = URL.createObjectURL(file); });
 }
-function applyData() { drawHouses(); drawMap(); go(step); $('#h-titel').textContent = D.stadtname; }
+function applyData() { drawHouses(); drawZukunft(); go(step); $('#h-titel').textContent = D.stadtname; }
 
 /* ---------- Start ---------- */
 let view = 'leinwand';
@@ -629,7 +606,6 @@ document.addEventListener('keydown', e => {
 });
 const ro = new ResizeObserver(() => {
   if (!D) return;
-  if (step === D.kapitel.length + 1) zoomCity(true);
   if (featIdx >= 0 && !flights.length) showFeature(featIdx, false);
   syncBuilt();
 });
@@ -638,9 +614,9 @@ window.addEventListener('hashchange', route);
 
 fetch('inhalt.json', {cache: 'no-store'}).then(r => r.json()).then(j => {
   FILE = j; D = LS.get('ks-inhalt') || structuredClone(j);
-  ['jobs', 'kapitel', 'staedte'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
+  ['jobs', 'kapitel'].forEach(k => { if (!Array.isArray(D[k])) D[k] = FILE[k] || []; });
   D.intro = D.intro || {}; D.finale = D.finale || {};
-  drawHouses(); drawMap(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
+  drawHouses(); drawZukunft(); $('#h-titel').textContent = D.stadtname; route(); sync.live();
 }).catch(() => { $('#panel').innerHTML = '<h1>Inhalte konnten nicht geladen werden</h1><p>Die Datei inhalt.json fehlt oder ist fehlerhaft.</p>'; $('#leinwand').classList.add('on'); });
 }
 </script>

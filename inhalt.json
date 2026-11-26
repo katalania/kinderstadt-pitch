@@ -118,54 +118,6 @@
   ],
   "finale": {
     "titel": "Eine Stadt. Und bald viele.",
-    "text": "Heute habt ihr eine Stadt gebaut. Morgen bauen Kinder in der ganzen Schweiz ihre eigene. Behaltet euren Bürgerausweis als Erinnerung."
-  },
-  "staedte": [
-    {
-      "name": "Pilotgemeinde",
-      "lon": 8.31,
-      "lat": 47.05,
-      "start": true
-    },
-    {
-      "name": "Zürich",
-      "lon": 8.54,
-      "lat": 47.37
-    },
-    {
-      "name": "Bern",
-      "lon": 7.45,
-      "lat": 46.95
-    },
-    {
-      "name": "Basel",
-      "lon": 7.59,
-      "lat": 47.56
-    },
-    {
-      "name": "St. Gallen",
-      "lon": 9.37,
-      "lat": 47.42
-    },
-    {
-      "name": "Lausanne",
-      "lon": 6.63,
-      "lat": 46.52
-    },
-    {
-      "name": "Lugano",
-      "lon": 8.95,
-      "lat": 46.0
-    },
-    {
-      "name": "Chur",
-      "lon": 9.53,
-      "lat": 46.85
-    },
-    {
-      "name": "Genève",
-      "lon": 6.14,
-      "lat": 46.2
-    }
-  ]
+    "text": "Heute habt ihr eine Stadt gebaut. Damit neue Kinderstädte gebaut werden können, brauchen wir eure Unterstützung."
+  }
 }
