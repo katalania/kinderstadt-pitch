@@ -80,6 +80,14 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .zahlen{display:flex;gap:clamp(10px,1.4vw,22px);margin-top:28px;flex-wrap:wrap}
 .zahl{text-align:center;font-size:14px;color:var(--petrol)}
 .zahl b{display:grid;place-items:center;width:clamp(84px,8vw,120px);aspect-ratio:1;border-radius:50%;background:var(--petrol);color:#fff;font-size:clamp(24px,2.4vw,36px);margin:0 auto 8px}
+.abst{margin-top:30px;display:grid;gap:clamp(12px,1.2vw,20px);max-width:900px}
+.abst .opt{display:grid;grid-template-columns:clamp(150px,11vw,220px) minmax(0,1fr) clamp(50px,4vw,80px);align-items:center;gap:18px;font-size:clamp(22px,1.7vw,32px);font-weight:700;color:var(--petrol);transition:opacity .5s}
+.abst .bar{height:clamp(34px,2.6vw,52px);background:var(--hell);border-radius:999px;overflow:hidden}
+.abst .bar i{display:block;height:100%;width:0;background:var(--teal);border-radius:999px;transition:width .6s cubic-bezier(.3,1.3,.5,1)}
+.abst .n{text-align:right}
+.abst.zu .opt{opacity:.35}.abst.zu .opt.sieg{opacity:1}.abst.zu .opt.sieg .bar i{background:var(--bronze)}
+.panel .stand{font-size:clamp(18px,1.3vw,24px);color:var(--schiefer);margin-top:22px}
+.panel .entscheid{font-size:clamp(28px,2.4vw,44px);font-weight:800;color:var(--petrol);margin-top:26px}
 .zahl:nth-child(2) b{background:var(--teal)}.zahl:nth-child(3) b{background:var(--nebel);color:var(--petrol)}
 
 .ctrl{position:fixed;left:14px;bottom:12px;display:flex;gap:6px;align-items:center;background:rgba(26,60,69,.92);padding:6px;border-radius:999px;z-index:5;transition:opacity .3s;flex-wrap:wrap}
@@ -123,6 +131,12 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
 .h-stadt{background:#fff;border-radius:18px;padding:18px 20px;margin-top:18px;color:var(--petrol)}
 .h-stadt h2{font-size:19px}.h-stadt p{margin:4px 0 10px;font-size:15px;color:var(--schiefer)}
 .h-stadt svg{width:100%;height:auto;display:block;background:var(--petrol);border-radius:14px}
+.h-abst{background:#fff;border-radius:18px;padding:20px;margin-top:18px;color:var(--petrol)}
+.h-abst h2{font-size:21px;margin-bottom:12px}.h-abst p{margin:6px 0 0;font-size:16px;color:var(--text)}
+.h-abst .wahl{display:grid;gap:10px}
+.h-abst .wahl button{background:var(--tief);color:#fff;font-size:22px;min-height:58px;border-radius:14px}
+.h-abst .wahl button:active{background:var(--teal)}
+.h-abst .ergebnis{font-size:26px;font-weight:800;color:var(--petrol);margin-top:4px}
 .link{background:none;color:var(--teal);padding:0;min-height:40px;font-weight:600;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -168,6 +182,7 @@ h1,h2{font-weight:700;line-height:1.08;text-wrap:balance;margin:0}
       <p class="tipp">Bild lange drücken und sichern, dann bleibt dein Ausweis als Erinnerung.</p>
       <button class="link" id="h-neu" type="button">Neuen Ausweis machen</button>
     </div>
+    <section class="h-abst" id="h-abst" hidden></section>
     <section class="h-stadt"><h2>Deine Stadt</h2><p id="h-stand">Schau auf die Leinwand: hier wächst sie mit.</p><svg id="h-houses" viewBox="0 0 600 150"></svg></section>
     <p style="text-align:center"><a class="link" href="#leinwand">Zur Leinwand-Ansicht</a></p>
   </main>
@@ -301,6 +316,7 @@ function addPerson(p, neu = true) {
   people.set(key, p);
   $('#cnt').textContent = people.size;
   if (step !== 0) { if (step === D.kapitel.length + 1) renderPanel(); return; }
+  if (abst > 0) { zeichneFigur(key, p); renderPanel(); return; }
   zeichneFigur(key, p);
   if (neu) {
     const li = document.createElement('li');
@@ -312,9 +328,20 @@ function addPerson(p, neu = true) {
 }
 
 const NAMEN = ['Mia','Noah','Lea','Luca','Emma','Elias','Sofia','Leon','Lina','Ben','Alina','Matteo','Nina','Jonas','Elena','Samuel','Laura','David','Ayla','Tim','Sara','Nico','Hanna','Levin','Zoe','Malik','Lia','Jan','Mila','Arian'];
-function leeren() { sync.reset(); people.clear(); figPos.clear(); $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
+function leeren() { sync.reset(); people.clear(); figPos.clear(); stimmen.clear(); simNr.clear(); abst = 0; kapital = null; $('#people').innerHTML = ''; $('#ticker').innerHTML = ''; $('#cnt').textContent = '0'; go(0); }
+const simNr = new Set();
 function simulate(n = 6) {
-  for (let i = 0; i < n; i++) setTimeout(() => addPerson(neuerBuerger(NAMEN[Math.floor(Math.random()*NAMEN.length)])), i * 350);
+  for (let i = 0; i < n; i++) setTimeout(() => {
+    const p = neuerBuerger(NAMEN[Math.floor(Math.random()*NAMEN.length)]);
+    simNr.add(p.nr); addPerson(p);
+    if (step === 0 && abst === 1) setTimeout(() => simStimmen(), 400);
+  }, i * 350);
+  if (step === 0 && abst === 1) setTimeout(() => simStimmen(), 300);
+}
+/* Simulierte Gäste stimmen zufällig ab (für Proben ohne echte Handys) */
+function simStimmen() {
+  const opt = optionen();
+  simNr.forEach(nr => { if (!stimmen.has(nr)) zaehleStimme(nr, opt[Math.floor(Math.random() * opt.length)]); });
 }
 function neuerBuerger(name) {
   return { name, job: D.jobs[Math.floor(Math.random() * D.jobs.length)], nr: String(1000 + Math.floor(Math.random() * 9000)) + Date.now().toString(36).slice(-3) };
@@ -344,11 +371,58 @@ function zoomCity(on) {
   city.style.transform = `translate(${(dx - s * (cx + 200 * c)).toFixed(1)}px,${(dy - s * (cy + 600 * c)).toFixed(1)}px) scale(${s.toFixed(4)})`;
 }
 
+/* ---------- Abstimmung über das Startkapital ----------
+   Die Abstimmung ist eine eigene Folie nach der Startfolie (step 0): abst 0 = Startfolie, 1 = Abstimmung offen, 2 = Ergebnis.
+   Das Ergebnis (Mehrheit) ist das Startkapital auf jedem Bürgerausweis. Gleichstand: der höhere Betrag gilt. */
+let abst = 0, kapital = null;
+const stimmen = new Map();
+const optionen = () => ((D.abstimmung && D.abstimmung.optionen) || [25, 50, 100]).map(Number);
+function zaehle() { const z = new Map(optionen().map(o => [o, 0])); stimmen.forEach(w => { if (z.has(w)) z.set(w, z.get(w) + 1); }); return z; }
+function ergebnis() {
+  const z = zaehle(), max = Math.max(...z.values());
+  if (max === 0) return {betrag: +D.startguthaben || optionen()[1] || optionen()[0], gleich: false, leer: true};
+  const top = [...z].filter(([, n]) => n === max).map(([o]) => o);
+  return {betrag: Math.max(...top), gleich: top.length > 1, leer: false};
+}
+function zaehleStimme(nr, wahl) {
+  nr = String(nr || '').slice(0, 20); wahl = +wahl;
+  if (!nr || !optionen().includes(wahl) || stimmen.has(nr)) return;
+  stimmen.set(nr, wahl);
+  if (view === 'leinwand' && step === 0 && abst === 1) renderPanel();
+}
+function setAbst(a) {
+  abst = Math.max(0, Math.min(2, a));
+  kapital = abst === 2 ? ergebnis().betrag : null;
+  $('#leinwand').classList.toggle('start', step === 0 && abst === 0);
+  zeichnePunkte(); renderPanel(); sync.step(step);
+}
+function weiter() { if (step === 0 && abst < 2) setAbst(abst + 1); else go(step + 1); }
+function zurueck() {
+  if (step === 1) { go(0); setAbst(2); }
+  else if (step === 0 && abst > 0) setAbst(abst - 1);
+  else go(step - 1);
+}
+function zeichnePunkte() {
+  const N = D.kapitel.length, aktiv = step === 0 ? (abst > 0 ? 1 : 0) : step + 1;
+  $('#dots').innerHTML = Array.from({length: N + 3}, (_, i) => `<i class="${i === aktiv ? 'on' : ''}"></i>`).join('');
+}
+function abstPanel(logo, foot) {
+  const z = zaehle(), total = stimmen.size, max = Math.max(1, ...z.values()), zu = abst === 2, e = zu ? ergebnis() : null;
+  const frage = (D.abstimmung && D.abstimmung.frage) || 'Wie viel Startkapital bekommt jede:r Bürger:in?';
+  const rows = [...z].map(([o, n]) => `<div class="opt${e && o === e.betrag ? ' sieg' : ''}"><span>${o} ${esc(D.waehrung)}</span><div class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></div><span class="n">${n}</span></div>`).join('');
+  const unten = zu
+    ? `<div class="entscheid">Die Stadt hat entschieden: ${e.betrag} ${esc(D.waehrung)} für alle.</div><div class="stand">${e.leer ? 'Niemand hat abgestimmt, darum gilt der Standardbetrag.' : e.gleich ? 'Gleichstand: Der höhere Betrag gilt.' : `${total} Stimmen abgegeben.`}</div>`
+    : `<div class="stand">${total} von ${people.size} haben abgestimmt.</div>`;
+  return `${logo}<div class="kicker">Abstimmung · ${zu ? 'Ergebnis' : 'jetzt auf dem Handy abstimmen'}</div><h1>${esc(frage)}</h1><div class="abst${zu ? ' zu' : ''}">${rows}</div>${unten}${foot}`;
+}
+
 /* ---------- Folien-Panel ---------- */
 function renderPanel() {
   const N = D.kapitel.length, P = $('#panel'), logo = '<div class="logo">Kinder<br>stadt</div>';
   const foot = `<footer><span>${step + 1}</span><span>${esc(D.stadtname)}</span></footer>`;
-  if (step === 0) {
+  if (step === 0 && abst > 0) {
+    P.innerHTML = abstPanel(logo, foot);
+  } else if (step === 0) {
     const datum = D.intro.datum || new Date().toLocaleDateString('de-CH', {day: 'numeric', month: 'long', year: 'numeric'});
     P.innerHTML = `<div class="logo hub">the<br>social<br>hub</div><div class="kicker">${esc(datum)}</div><h1>${esc(D.intro.titel)}</h1><p>${esc(D.intro.text)}</p>
       <div class="qr"><div class="code" id="qr"></div><small>${people.size ? esc(people.size) + ' sind schon da.' : 'Die Stadt ist noch leer.'}</small></div>${foot}`;
@@ -444,9 +518,9 @@ function go(s) {
   if (prev === 0 && step > 0) figurenInsHaus();
   if (step === 0 && prev !== 0) zeigeFiguren();
   $('#leinwand').classList.toggle('finale', step === N + 1);
-  $('#leinwand').classList.toggle('start', step === 0);
+  $('#leinwand').classList.toggle('start', step === 0 && abst === 0);
   zoomCity(step === N + 1);
-  $('#dots').innerHTML = Array.from({length: N + 2}, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('');
+  zeichnePunkte();
   renderPanel();
   sync.step(step);
 }
@@ -462,7 +536,8 @@ async function ausweisBild(p) {
   x.fillStyle = '#A6B9BF'; x.font = F(400, 26); x.fillText('Bürgerausweis', 64, 92);
   x.fillStyle = '#fff'; x.font = F(700, 60); x.fillText(D.stadtname, 64, 160);
   const row = (l, v, y, big) => { x.fillStyle = '#A6B9BF'; x.font = F(400, 22); x.fillText(l, 64, y); x.fillStyle = '#fff'; x.font = F(700, big ? 52 : 36); x.fillText(v, 64, y + (big ? 56 : 44)); };
-  row('Name', p.name, 250, true); row('Beruf', p.job, 390); row('Startguthaben', `${D.startguthaben} ${D.waehrung}`, 500);
+  const kap = LS.get('ks-kapital');
+  row('Name', p.name, 250, true); row('Beruf', p.job, 390); row('Startkapital', kap ? `${kap} ${D.waehrung}` : 'wird abgestimmt', 500);
   x.fillStyle = '#A6B9BF'; x.font = F(400, 20);
   x.fillText(`Nr. ${p.nr.slice(0, 4)} · ausgestellt am ${new Date().toLocaleDateString('de-CH')}`, 64, 616);
   const cx = 830, cy = 270;
@@ -477,6 +552,27 @@ async function zeigeAusweis(p) {
   $('#h-img').src = await ausweisBild(p);
   $('#h-form').hidden = true; $('#ausweis').hidden = false;
 }
+/* Abstimmungskarte auf dem Handy: erscheint automatisch, wenn die Leinwand die Abstimmung öffnet. */
+let hAbst = 0, hStep = 0, hRunde = 0;
+function handyAbst(st, a, kap) {
+  hStep = st; hAbst = a;
+  const box = $('#h-abst'), me = LS.get('ks-ich'), meine = LS.get('ks-stimme');
+  const alt = LS.get('ks-kapital');
+  if (kap) LS.set('ks-kapital', kap); else if (st === 0 && a < 2) LS.del('ks-kapital');
+  if (me && String(LS.get('ks-kapital')) !== String(alt)) zeigeAusweis(me);
+  if (st !== 0 || a === 0) { box.hidden = true; return; }
+  box.hidden = false;
+  const frage = (D.abstimmung && D.abstimmung.frage) || 'Wie viel Startkapital bekommt jede:r Bürger:in?';
+  if (a === 2 && kap) { box.innerHTML = `<h2>Die Stadt hat entschieden</h2><div class="ergebnis">${esc(kap)} ${esc(D.waehrung)} Startkapital für alle</div><p>Das steht jetzt auf deinem Bürgerausweis.</p>`; return; }
+  if (!me) { box.innerHTML = `<h2>${esc(frage)}</h2><p>Hol dir zuerst oben deinen Bürgerausweis, dann kannst du abstimmen.</p>`; return; }
+  if (meine && meine.nr === me.nr && meine.runde === hRunde) { box.innerHTML = `<h2>Danke fürs Abstimmen!</h2><p>Deine Stimme: <b>${esc(meine.wahl)} ${esc(D.waehrung)}</b>. Das Ergebnis siehst du gleich auf der Leinwand.</p>`; return; }
+  box.innerHTML = `<h2>${esc(frage)}</h2><div class="wahl">${optionen().map(o => `<button type="button" data-wahl="${o}">${o} ${esc(D.waehrung)}</button>`).join('')}</div>`;
+}
+$('#h-abst').addEventListener('click', e => {
+  const b = e.target.closest('[data-wahl]'), me = LS.get('ks-ich'); if (!b || !me) return;
+  const wahl = +b.dataset.wahl; LS.set('ks-stimme', {nr: me.nr, wahl, runde: hRunde}); sync.stimme(me.nr, wahl);
+  handyAbst(hStep, hAbst, null);
+});
 /* Das Handy zeigt dasselbe Dorf wie die Leinwand, mit allen Häusern bis zum aktuellen Kapitel. */
 let handyStand = -1;
 function handyStadt(s) {
@@ -501,13 +597,20 @@ const sync = (() => {
   const onMsg = m => {
     if (!m || !D) return;
     if (m.t === 'buerger' && view === 'leinwand') addPerson(m.p);
-    if (m.t === 'step' && view === 'handy') handyStadt(+m.step || 0);
-    if (m.t === 'hallo') { if (view === 'leinwand') send({t: 'step', step}); if (me) send({t: 'buerger', p: me}); }
+    if (m.t === 'stimme' && view === 'leinwand') zaehleStimme(m.nr, m.wahl);
+    if (m.t === 'step' && view === 'handy') stepAmHandy(m);
+    if (m.t === 'hallo') { if (view === 'leinwand') send(stand()); if (me) send({t: 'buerger', p: me}); }
   };
   if (bc) bc.onmessage = e => onMsg(e.data);
   /* Live-Kanal über ntfy.sh (ohne Konto): Handys schicken ihren Ausweis, die Leinwand schickt das Kapitel. */
   let kanal = '', resetAb = 0;
-  let stepTimer = 0, lastPosted = 0;
+  let stepTimer = 0, lastPosted = '';
+  const stand = () => ({t: 'step', step, abst, kapital, runde: resetAb});
+  const stepAmHandy = m => {
+    const st = Math.max(0, Math.min(99, +m.step || 0)), a = Math.max(0, Math.min(2, +m.abst || 0)), kap = +m.kapital || null;
+    hRunde = +m.runde || 0;
+    handyStadt(st); handyAbst(st, a, kap && optionen().includes(kap) ? kap : (st > 0 ? LS.get('ks-kapital') : null));
+  };
   const post = m => { if (kanal) fetch('https://ntfy.sh/' + encodeURIComponent(kanal), {method: 'POST', body: JSON.stringify(m)}).catch(() => {}); };
   const clean = p => p && ({name: String(p.name || '').slice(0, 24), job: String(p.job || '').slice(0, 40), nr: String(p.nr || '').slice(0, 20)});
   function live() {
@@ -519,7 +622,8 @@ const sync = (() => {
         let n, m; try { n = JSON.parse(e.data); if (n.event !== 'message') return; m = JSON.parse(n.message); } catch (err) { return; }
         if (!m || (n.time || 0) * 1000 < resetAb) return;
         if (m.t === 'buerger' && view === 'leinwand') addPerson(clean(m.p));
-        if (m.t === 'step' && view === 'handy') handyStadt(Math.max(0, Math.min(99, +m.step || 0)));
+        if (m.t === 'stimme' && view === 'leinwand') zaehleStimme(m.nr, m.wahl);
+        if (m.t === 'step' && view === 'handy') stepAmHandy(m);
       };
     } catch (e) {}
   }
@@ -541,12 +645,14 @@ const sync = (() => {
     /* Kapitelwechsel gebündelt senden: erst wenn 1.2 s nicht mehr geklickt wurde, und nur wenn sich der Stand geändert hat.
        Spart ntfy-Nachrichten (Tageslimit 250 pro IP-Adresse). */
     step(s) {
-      if (view === 'leinwand' && s !== lastStep) {
+      const m = stand(), sig = `${m.step}/${m.abst}/${m.kapital}`;
+      if (view === 'leinwand') {
         clearTimeout(stepTimer);
-        stepTimer = setTimeout(() => { if (s !== lastPosted) { post({t: 'step', step: s}); lastPosted = s; } }, 1200);
+        stepTimer = setTimeout(() => { if (sig !== lastPosted) { post(m); lastPosted = sig; } }, 1200);
       }
-      lastStep = s; send({t: 'step', step: s}); pres();
+      lastStep = s; send(m); pres();
     },
+    stimme(nr, wahl) { const m = {t: 'stimme', nr, wahl}; send(m); post(m); },
     buerger(p, neu) { me = p; send({t: 'buerger', p}); if (neu) post({t: 'buerger', p}); pres(); },
     hallo() { send({t: 'hallo'}); pres(); }
   };
@@ -588,12 +694,12 @@ function route() {
   view = location.hash === '#handy' ? 'handy' : 'leinwand';
   $('#leinwand').classList.toggle('on', view === 'leinwand');
   $('#handy').classList.toggle('on', view === 'handy');
-  if (view === 'handy') { const me = LS.get('ks-ich'); if (me) { zeigeAusweis(me); sync.buerger(me); } handyStadt(step); sync.hallo(); }
+  if (view === 'handy') { const me = LS.get('ks-ich'); if (me) { zeigeAusweis(me); sync.buerger(me); } handyStadt(hStep); handyAbst(hStep, hAbst, LS.get('ks-kapital')); sync.hallo(); }
   else { go(step); }
 }
 
-$('#vor').onclick = () => go(step + 1);
-$('#zur').onclick = () => go(step - 1);
+$('#vor').onclick = () => weiter();
+$('#zur').onclick = () => zurueck();
 $('#sim').onclick = () => simulate();
 $('#leer').onclick = leeren;
 $('#edit').onclick = editor;
@@ -615,15 +721,15 @@ $('#kaps').addEventListener('click', e => { if (e.target.matches('[data-weg]')) 
 $('#h-form').addEventListener('submit', e => {
   e.preventDefault();
   const name = $('#h-name').value.trim().slice(0, 24); if (!name) return;
-  const me = neuerBuerger(name); LS.set('ks-ich', me); zeigeAusweis(me); sync.buerger(me, true);
+  const me = neuerBuerger(name); LS.set('ks-ich', me); zeigeAusweis(me); sync.buerger(me, true); handyAbst(hStep, hAbst, LS.get('ks-kapital'));
 });
 $('#h-neu').onclick = () => { LS.del('ks-ich'); $('#h-form').hidden = false; $('#ausweis').hidden = true; $('#h-name').focus(); };
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#sheet').hidden) { $('#sheet').hidden = true; return; }
   if (view !== 'leinwand' || !$('#sheet').hidden || e.target.matches?.('input,textarea,select')) return;
-  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(step + 1); }
-  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(step - 1); }
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); weiter(); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); zurueck(); }
   else if (e.key === 's') simulate();
   else if (e.key === 'r') leeren();
   else if (e.key === 'i') editor();

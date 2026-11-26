@@ -119,5 +119,13 @@
   "finale": {
     "titel": "Eine Stadt. Und bald viele.",
     "text": "Heute habt ihr eine Stadt gebaut. Damit neue Kinderstädte gebaut werden können, brauchen wir eure Unterstützung."
+  },
+  "abstimmung": {
+    "frage": "Wie viel Startkapital bekommt jede:r Bürger:in?",
+    "optionen": [
+      25,
+      50,
+      100
+    ]
   }
 }
