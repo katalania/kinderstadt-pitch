@@ -657,7 +657,8 @@ const sync = (() => {
   };
   if (bc) bc.onmessage = e => onMsg(e.data);
   /* Live-Kanal über ntfy.sh (ohne Konto): Handys schicken ihren Ausweis, die Leinwand schickt das Kapitel. */
-  let kanal = '', resetAb = 0;
+  /* resetAb gleich beim Start lesen: Die Leinwand schickt ihren Stand schon vor live() (sonst runde 0 nach dem Neuladen). */
+  let kanal = '', resetAb = +(LS.get('ks-reset') || 0);
   let stepTimer = 0, lastPosted = '';
   const stand = () => ({t: 'step', step, abst, kapital, runde: resetAb});
   const stepAmHandy = m => {
