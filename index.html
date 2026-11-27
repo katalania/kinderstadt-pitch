@@ -296,6 +296,7 @@ function zeichneFigur(key, p) {
   list.insertBefore(g, after || null);
 }
 function zeigeFiguren() { $('#people').innerHTML = ''; people.forEach((p, key) => zeichneFigur(key, p)); }
+/* Die Figuren warten, bis das grosse Haus fertig erschienen ist (650 ms) und kurz ruhig dasteht. */
 function figurenInsHaus() {
   const figs = [...document.querySelectorAll('#people .fig')], F = featRect(0), L = $('#leinwand').getBoundingClientRect();
   if (!figs.length) return;
@@ -312,7 +313,7 @@ function figurenInsHaus() {
       {transform: `translate(${(x0 + x1) / 2}px,${Math.min(y0, y1) - 80}px)`, opacity: 1, offset: .5},
       {transform: `translate(${x1}px,${y1}px) scale(.9)`, opacity: 1, offset: .92},
       {transform: `translate(${x1}px,${y1 + 6}px) scale(.4)`, opacity: 0}
-    ], {duration: 1300, delay: 300 + n * 45, easing: 'ease-in-out', fill: 'both'});
+    ], {duration: 1300, delay: 1000 + n * 45, easing: 'ease-in-out', fill: 'both'});
     a.onfinish = () => { el.remove(); flights = flights.filter(f => f !== a); };
     flights.push(a);
   });
